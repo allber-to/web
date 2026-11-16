@@ -364,11 +364,12 @@ export function HelpSidebarIcons(props: Props) {
       />
 
       <nav
-        style={{ borderColor: colors.$5 }}
+        style={{ borderColor: colors.$26 }}
         className={classNames('flex space-x-2.5 py-4 text-white border-t', {
           'justify-end': mobileNavbar,
           'justify-around': !mobileNavbar,
           'px-2': !isUpdateAvailable,
+          '-mx-3': !mobileNavbar,
         })}
       >
         {!isMiniSidebar && !mobileNavbar && (
