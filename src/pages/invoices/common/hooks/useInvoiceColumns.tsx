@@ -522,7 +522,7 @@ export function useInvoiceColumns(): DataTableColumns<Invoice> {
             <div className="w-full max-h-48 overflow-auto whitespace-normal break-all">
               <article
                 className={classNames('prose prose-sm', {
-                  'prose-invert': !reactSettings?.dark_mode,
+                  'prose-invert': reactSettings?.dark_mode,
                 })}
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHTML(value as string),
@@ -548,7 +548,7 @@ export function useInvoiceColumns(): DataTableColumns<Invoice> {
             <div className="w-full max-h-48 overflow-auto whitespace-normal break-all">
               <article
                 className={classNames('prose prose-sm', {
-                  'prose-invert': !reactSettings?.dark_mode,
+                  'prose-invert': reactSettings?.dark_mode,
                 })}
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHTML(value as string),
