@@ -8,6 +8,7 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import { atom, useAtomValue } from 'jotai';
 import { useReactSettingsField } from './hooks/useReactSettings';
 
 // export const $1 = {
@@ -86,7 +87,14 @@ export const lightColorScheme = {
   $26: '#3F3F46', // Border on dark surfaces (sidebar)
 };
 
+export const systemPrefersDarkAtom = atom(false);
+
 export function useColorScheme() {
   const darkMode = useReactSettingsField('dark_mode');
-  return darkMode ? darkColorScheme : lightColorScheme;
+  const followDeviceTheme = useReactSettingsField('follow_device_theme');
+  const systemPrefersDark = useAtomValue(systemPrefersDarkAtom);
+
+  return (followDeviceTheme ? systemPrefersDark : darkMode)
+    ? darkColorScheme
+    : lightColorScheme;
 }
