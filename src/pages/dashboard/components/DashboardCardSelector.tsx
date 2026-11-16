@@ -474,7 +474,7 @@ export function DashboardCardSelector() {
                   'flex items-center justify-between rounded-md px-2 py-2 mx-2 mb-0.5',
                   {
                     'bg-gray-100': !reactSettings.dark_mode,
-                    'bg-[#1f2e41]': reactSettings.dark_mode,
+                    'bg-[#2F2F36]': reactSettings.dark_mode,
                   }
                 )}
               >
@@ -522,7 +522,7 @@ export function DashboardCardSelector() {
                             'flex items-center justify-between rounded-md px-2 py-2',
                             {
                               'bg-gray-100': !reactSettings.dark_mode,
-                              'bg-[#1f2e41]': reactSettings.dark_mode,
+                              'bg-[#2F2F36]': reactSettings.dark_mode,
                             }
                           )}
                           {...provided.draggableProps}
@@ -555,7 +555,7 @@ export function DashboardCardSelector() {
                                     'flex items-center justify-between rounded-md px-2 py-2',
                                     {
                                       'bg-gray-100': !reactSettings.dark_mode,
-                                      'bg-[#1f2e41]': reactSettings.dark_mode,
+                                      'bg-[#2F2F36]': reactSettings.dark_mode,
                                     }
                                   )}
                                   {...provided.draggableProps}

@@ -127,7 +127,7 @@ export function InvoiceTotals(props: Props) {
         <div
           className={classNames('divide-y divide-dashed', {
             'divide-[#09090B1A]': !reactSettings.dark_mode,
-            'divide-[#1f2e41]': reactSettings.dark_mode,
+            'divide-[#2E2E34]': reactSettings.dark_mode,
           })}
         >
           {variables.map((variable, index) => (
