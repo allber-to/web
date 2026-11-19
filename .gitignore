@@ -43,3 +43,6 @@ cypress/screenshots
 # Playwright
 node_modules/
 /playwright/.auth/
+
+# Local TypeScript incremental build cache
+*.tsbuildinfo
