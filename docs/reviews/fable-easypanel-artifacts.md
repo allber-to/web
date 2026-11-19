@@ -174,3 +174,46 @@ O que conferi:
 Uma atenção para quem preenche o ambiente no painel: o Compose não consegue impedir um `APP_URL` começando com `http://`. Com `REQUIRE_HTTPS` ligado, esse erro só apareceria como links errados no ar. Conferir o valor antes do deploy; o critério H5 pega se escapar.
 
 **Continua sem validação:** tudo que depende do painel. Que o proxy alcance o `nginx` sem porta publicada (D4), que os cabeçalhos encaminhados cheguem (H2, H5) e que o certificado seja emitido (H1) só se sabe no primeiro deploy.
+
+## Suplemento — frontend pré-compilado, caminho da seção 15 (19/11/2026)
+
+**Aceito. Sem correção obrigatória.** O caminho pode seguir para a publicação da release e o commit dos valores reais. Revisei `deploy/easypanel/Dockerfile`, o pacote local e as evidências; não reconstruí nada.
+
+### O que conferi eu mesmo
+
+- **Hash do pacote:** calculei o SHA-256 de `allberto-web-52db1b5423ea.tar.gz` e obtive `5f9d3b717d30706d82c8d4ba66e7cf8ebcb49fa0ef695c1630dce4b94e351f02`, igual ao informado. Tamanho 15.276.656 bytes.
+- **Conteúdo do pacote:** 1.389 entradas, todas com caminho relativo, nenhuma absoluta nem com `..`; nenhum arquivo auxiliar do macOS; todos os arquivos e diretórios legíveis por qualquer usuário, então o nginx consegue servi-los. O arquivo do DocuNinja não está no pacote.
+- **`version.json` dentro do pacote:** revisão `52db1b5423eafac06d43c38b710f23b6a5fdc6c4`.
+- **Verificador (E5/W2):** o registro mostra aprovação sobre o pacote extraído, com zero endereço local de serviço.
+- **Download por HTTPS com redirecionamento:** era o ponto que o teste do Astra não cobria, porque W5 usou um pacote de teste servido por HTTP local. Rodei o `wget` da imagem `nginx:alpine` contra um arquivo de release pública do GitHub de outro projeto: baixou, seguindo o redirecionamento. A ferramenta da imagem base serve para a URL real.
+- **`Dockerfile`:** falha se a URL ou o hash estiverem vazios; confere o hash antes de extrair; limpa o diretório padrão; apaga o pacote; usa o `frontend.conf` já aceito; mesmo healthcheck.
+- **W5:** com hash errado, o build falha na conferência; com o certo, conclui; `nginx -t` aprovado.
+
+### Achados
+
+Nenhum bloqueia.
+
+1. **Baixa — a imagem leve não registra a revisão em rótulo.** O `frontend.Dockerfile` original gravava `org.opencontainers.image.revision`. Aqui a identificação fica só em `/version.json`. Suficiente; opcional acrescentar.
+2. **Informativa — revisão do pacote e commit publicado são diferentes.** O pacote identifica `52db1b5`; a `main` está em `1ee50c7`, o merge da PR #2. É coerente, porque o merge não altera o código do frontend, mas quem conferir `/version.json` no ar deve esperar `52db1b5`, não o SHA do merge. Registrar isso na descrição da release.
+3. **Informativa — os argumentos estão sem valor padrão de propósito.** Até o commit com a URL e o hash reais, o build do serviço `web` falha por desenho. Não fazer deploy do `web` antes desse commit.
+
+### Sequência que falta, na ordem
+
+1. Coordenador publica a release com o pacote e confere que o arquivo público tem o mesmo SHA-256 (W1).
+2. Commit em `deploy/easypanel/Dockerfile` com a URL do arquivo e o hash como valores padrão.
+3. Deploy do `backend` e verificação de H1–H4.
+4. Deploy do `web`; a saída deve mostrar o hash conferido e nenhuma instalação de Node (W3); `/version.json` com `52db1b5` (W4).
+
+### Requisitos remotos ainda abertos
+
+Com o segundo inventário, ficaram fechados: arquitetura amd64, memória disponível (3.277 MiB, sem swap), disco e ausência de outros serviços. Os dois hosts existem e têm certificado válido, respondendo 502 enquanto não há container.
+
+Continua sem validação, até o deploy:
+- o manifesto **amd64** da imagem do backend nunca foi executado;
+- que o proxy alcance o `nginx` do Compose sem porta publicada (D4) e que os cabeçalhos encaminhados cheguem (H2, H5);
+- que a VPS alcance `github.com` e o Docker Hub durante o build;
+- que o plano com licença inativa aceite serviço App com fonte GitHub e builder Dockerfile no Build Path `/deploy/easypanel`;
+- o 403 do signup e `GET /setup` no ar (E7);
+- o consumo de memória com os quatro containers, sobretudo ao gerar PDF: sem swap, falta de memória derruba processo em vez de degradar;
+- login, PDF, persistência após redeploy e dump do banco (E6, E8, E9);
+- backup com restauração testada, que continua sendo condição para dados reais.
