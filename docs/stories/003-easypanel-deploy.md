@@ -1,7 +1,16 @@
 # 003 — Publicação no EasyPanel da StayCloud
 
-**Estado:** PRs #1–#3 mescladas e os dois serviços publicados em HTTPS. Saúde, versão, rotas, login pela API e CORS aprovados; operador valida login pela interface, rascunho/PDF e depois persistência.
+**Estado:** concluída em 19/11/2026, com [aceite final do CTO para homologação](../reviews/fable-easypanel-runtime.md); PRs #1–#5 mescladas. Frontend corrigido v2 conectado ao backend real por HTTPS. Backup externo/restauração, provedor de e-mail e gateways não estão homologados; condições antes de dados reais no parecer.
 **Coordenação:** SINAPSE. **CTO:** Fable 5.2. **Implementação:** Astra. **Operação do painel:** chat com CUA funcional, sob coordenação deste projeto.
+
+| Serviço | Endereço / revisão |
+| --- | --- |
+| Allberto | https://allberto-web.cxfujw.easypanel.host |
+| API e portal | https://allberto-backend.cxfujw.easypanel.host |
+| Frontend servido | `f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d` — release `web-f5cb28edb112-1` |
+| Backend | Invoice Ninja 5.13.49, imagem fixada por digest |
+
+As seções abaixo preservam a ordem das decisões e incidentes. Menções a IP/portas, isolamento total do app ou verificações pendentes descrevem etapas anteriores; o estado atual está no [guia operacional](../staycloud.md) e no encerramento ao fim desta story.
 
 ## Autorização e escopo
 
@@ -40,8 +49,8 @@ Fable entregou [arquitetura EasyPanel](../architecture-easypanel.md), com GO par
 - [x] Acessar sessão autenticada do painel e conferir recursos, arquitetura, versão/plano, serviços existentes, hosts e administrador.
 - [x] Revisar artefatos e publicar no GitHub.
 - [x] Configurar serviços e segredos novos no projeto `allberto`.
-- [ ] Implantar e validar E1–E10 na VPS, incluindo bloqueio de signup adicional, PDF e persistência.
-- [ ] Registrar URLs, revisão final, backup e limites.
+- [x] Implantar e executar as verificações na VPS, incluindo bloqueio de signup adicional, PDF e persistência; registrar a cobertura e os limites de cada critério no parecer final.
+- [x] Registrar URLs, revisão final, backup e limites.
 
 A tentativa no navegador integrado mostrou a tela de login. O conector CUA de navegador retornou host indisponível; a alternativa nativa inicialmente falhou ao iniciar. Outro chat confirmou depois o procedimento funcional: sessão nova de `mcp__cua_repl` cuja primeira chamada é somente `cua.getApp("com.google.Chrome")`; observou EasyPanel autenticado, sem novo login. O coordenador aguarda a liberação exclusiva do Chrome pelo agente que testa firewall em outra VM, sem tocar em foco, abas ou clipboard. Nenhuma sessão foi extraída nem permissão alterada por automação.
 
@@ -120,3 +129,35 @@ O operador executou uma vez o procedimento manual de backup revisado pelo CTO, a
 | `storage.tar.gz` | 382.466 bytes | `394876eea7970f6a5fea59943355e038d9ef822912b937cfc85cc7f84891dbb5` |
 
 Checksums conferidos e tar validado sem imprimir conteúdo. Staging removido somente após sucesso. Essa cópia permanece **na mesma VPS**; não comprova restauração nem protege contra perda do servidor. As permissões iniciais 0700/0600 serão normalizadas para www-data/0755/0644 pelo init da imagem após redeploy, ficando legível pelo PHP, embora fora da raiz pública. O cliente e o rascunho de teste foram preservados para E9.
+
+## Revisão final do código e redeploy do backend
+
+Fable encontrou e Astra corrigiu também uma regressão de arredondamento na primeira proposta: no modo changeOverride, o blur deve entregar o valor interno, não reler o texto arredondado exibido. O aceite final cobriu 9 testes focados e clique real do assistente em 43,4 ms, com preço 10 no request e nenhuma requisição externa. O coordenador rodou a suíte completa: **354 testes, 49 arquivos aprovados**. TypeScript, lint e build passaram no hook; CI aprovado.
+
+PR #4 mesclada, merge `c6737c2e32297d0c20ff1156f5769e43c7e9dfc9`, fonte `f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d`. O operador redeployou o backend uma vez após a cópia verificada. Configuração ativa comprovada como www-data: Sentry vazio, autoatualização desabilitada e transporte mail `log`. A chamada de autoatualização N6 foi dispensada por recomendação do CTO; não foi arriscada uma atualização real apenas para obter status de teste.
+
+App nas redes backend + egress; MySQL/Redis só na rede interna; nginx e volumes preservados; nenhuma porta publicada, OOM ou reinício inesperado. App alcançou a marca externa e sua própria API com TLS válido; o MySQL, com curl disponível e sem rota default, não resolveu o destino externo. Os pins correspondem às imagens aprovadas. As duas cópias mantiveram tamanhos e checksums após recriar o app; permissões normalizadas conforme a ressalva anterior.
+
+O coordenador confirmou por API, após o redeploy: conta/configuração pt_BR/BRL preservada; mesmo cliente e rascunho, um registro de cada, custo 10, quantidade 1, total 10 e status rascunho; login/precheck/refresh, CORS e os dois endpoints de indicadores retornaram 200. Método de envio da companhia permanece `default`.
+
+PDF regenerado: 200, 96.526 bytes, uma página, origem HTTPS da API. Inspeção visual por Poppler confirmou **sem imagens quebradas**, valor e texto corretos, marca Invoice Ninja preservada. O topo usa a imagem em branco válida, pois não há logotipo personalizado cadastrado; upload de logotipo não foi testado. Não houve compra de licença ou alteração do PHP. Evidência privada: `/tmp/allberto-easypanel-release-v2/invoice-after-egress.pdf` e PNG correspondente; relatório sanitizado `backend-redeploy-check.json`.
+
+Release [web-f5cb28edb112-1](https://github.com/allber-to/web/releases/tag/web-f5cb28edb112-1) publicada e download anônimo conferido: 15.274.255 bytes, SHA-256 `fcbf81bcbb622efab348a218b8524f4c5af62a7225321777af019ca6351d1ac5`. Build leve sem argumentos, checksum e nginx aprovados. PR #5 mesclada com CI verde, merge `32c777a0c2c186b1b4c3a581255682cd53c189d3`; o operador recebeu autorização para redeployar somente web e conferir a correção pela interface. A versão esperada é o SHA de fonte `f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d`, não o SHA do merge.
+
+## Encerramento — v2 no ar e homologação aprovada
+
+O web foi reimplantado manualmente uma vez a partir da PR #5, em 6 segundos, sem build Node na VPS. `/version.json` retornou o SHA esperado `f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d`. `/`, `/clients` e `/invoices` responderam 200 com o HTML idêntico ao pacote público; o asset que contém a origem da API também teve SHA-256 idêntico. A origem efetiva é HTTPS do backend. Todos os serviços permaneceram sem portas publicadas diretamente.
+
+Após recarga completa no Chrome, Painel, Clientes e Faturas renderizaram em português, preservando a sessão. No mesmo rascunho, o operador alterou preço 10 → 11, salvou e reabriu para conferir; depois restaurou 10 e conferiu novamente. A automação nativa levou 917 ms entre preencher e sair do campo, portanto **não comprova o caso abaixo de 500 ms no servidor publicado**. A prova estrita continua sendo o teste local com clique real a 43,4 ms, sobre a mesma fonte cujo pacote foi servido e conferido por hash.
+
+N7 foi executado uma vez, com guard confirmando `mail.default=log` e a classe `LogTransport` antes da mensagem fictícia. Resultado `LOG_MAIL_PROBE_OK`, contagem 1, exit 0. Nenhuma fatura enviada, cobrança ou pagamento. O transporte também espelhou a mensagem fictícia na saída do tinker; nenhum conteúdo de log foi anexado. Entrega externa e eventos de provedor continuam fora do aceite.
+
+O coordenador confirmou a persistência final dos mesmos registros (rascunho 0001, quantidade 1, custo/total 10, pago 0) após ambos os redeploys. Em seguida arquivou reversivelmente **somente o cliente e a fatura fictícios**, com `archived_at>0` e `is_deleted=false`. API e interface confirmaram zero clientes/faturas ativos. Não houve exclusão definitiva, reset ou alteração de registros reais. O histórico e o número 0001 consumido permanecem; a etapa histórica de primeiro cliente continua concluída.
+
+A última medição pontual mostrou app 677,6 MiB, MySQL 479,8 MiB, Redis 10,6 MiB, nginx 3,828 MiB e web 4,234 MiB. Cinco containers ativos, quatro healthy (nginx sem healthcheck), zero reinícios e zero OOM. Não representa teste de carga ou pico de geração de PDFs.
+
+Fable aprovou a entrega de homologação sem bloqueio no [parecer final](../reviews/fable-easypanel-runtime.md), distinguindo evidência própria e relatos. H6 não possui relatório de rede do navegador; N4 (logotipo personalizado) não foi exercitado; N6 foi dispensado em favor da configuração efetiva N5. Não declarar homologados gateway, usuários não administradores, envio real, carga ou restauração. Antes de dados reais, atender às condições do parecer, especialmente backup externo com restauração testada e restrição dos proxies confiáveis. `APP_KEY` e senha estão na cópia privada local do proprietário, fora do Git; a guarda durável dessa cópia faz parte da operação.
+
+O operador deixou o app aberto e autenticado no Painel e liberou o Chrome, preservando todas as abas alheias. A frente de firewall foi avisada; não houve qualquer acesso ou alteração em WHMCS/VM3064. O [handoff do operador](../handoffs/easypanel-live-inventory.md) está estável. Nenhum novo deploy é necessário para este fechamento documental.
+
+Evidências adicionais privadas em `/tmp/allberto-easypanel-release-v2/`: `web-final-check.json`, `post-egress-public-checks.json`, `backend-redeploy-check.json`, `final-persistence-cleanup.json` e PDF renderizado. Os resultados necessários estão transcritos nesta story e no handoff; o PDF e URLs privadas não foram publicados.

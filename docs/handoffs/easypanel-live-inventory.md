@@ -1,6 +1,6 @@
 # Inventário ao vivo do EasyPanel
 
-Estado mais recente: backend e web implantados; login e navegação em português validados. Único rascunho fictício corrigido para R$ 10,00 pela UI, com persistência conferida. Portal específico funciona por HTTPS; PDF renderiza valores corretos, com logotipo quebrado em diagnóstico pelo coordenador. Cinco containers running, sem reinícios/OOM após o teste. Backup local pré-redeploy E9 concluído e verificado em `20261119T163258Z`; redeploy aguarda novo SHA. As seções anteriores preservam o inventário antes das mudanças.
+Estado final: backend PR 4 e web PR 5/pacote v2 implantados e validados. Saúde, redes, pins, N5, N7, backup e persistência conferidos. Coordenador arquivou reversivelmente somente o cliente e a fatura fictícios, após confirmar total 10. UI atualizada confirmou **zero clientes ativos e zero faturas ativas**; painel em BRL com totais zerados. Allberto deixado aberto no Painel para o proprietário. Operação deste chat encerrada e Chrome liberado, com todas as abas preservadas. As seções anteriores preservam o histórico das verificações.
 
 Data: 19/11/2026. Operador: chat `777a7c50-10d2-44c7-a090-a6ec475c5f59`. Solicitação: `msg_051186d9fbce`, do coordenador `ecdf0c57-bcde-43e8-9066-dc595b02857f`.
 
@@ -240,3 +240,91 @@ Caminho no container app, volume persistente **app_storage**:
 Total dos dois arquivos: **887366 bytes**. Manifesto `SHA256SUMS` gravado no mesmo diretório. O tar exclui `./app/backups`. Proteção inicial definida pelo procedimento: diretórios 0700 e arquivos 0600; o init/redeploy da imagem altera storage para www-data e 0755/0644. O backup fica fora de `storage/app/public`, mas é acessível pelo processo da aplicação após esse init e está na **mesma VPS**. Não comprova restauração nem substitui cópia externa.
 
 A saída inicialmente estava fora da área visível da janela; a janela foi ajustada e o zoom temporário restaurado para 100%, sem repetir o comando. Console fechado e `completion_summary` enviado. Resultado comunicado ao coordenador em `msg_6ccb43a85fbd`. Cliente/fatura `VolejRejNm`, total R$ 10,00, preservados; nenhuma alteração de rede, licença, firewall ou aplicação alheia. Aguardando próximo SHA revisado antes de qualquer redeploy.
+
+## Etapa 7 — redeploy backend PR 4 e verificações N1/N2/N5
+
+Autorização específica `msg_e44a7a1db67a`: PR 4 com CI aprovado e merge em `c6737c2e32297d0c20ff1156f5769e43c7e9dfc9`, fonte revisada `f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d`. Botão **Implantar** do backend acionado uma única vez. Histórico identificou **Merge pull request #4**, concluído em **36 segundos**. Nenhuma edição do ambiente, APP_KEY, segredos ou volumes. Web não reimplantado.
+
+Consultas no Console GLOBAL limitadas a campos selecionados de estado, redes, imagens e mounts, configuração Laravel autorizada, metadata do backup e duas verificações HTTPS sem corpos de resposta.
+
+| Container | Estado | Redes | PortBindings / reinícios / OOM |
+| --- | --- | --- | --- |
+| allberto_backend-app-1 | running / healthy | allberto_backend_backend, allberto_backend_egress | `{}` / 0 / false |
+| allberto_backend-mysql-1 | running / healthy | allberto_backend_backend | `{}` / 0 / false |
+| allberto_backend-redis-1 | running / healthy | allberto_backend_backend | `{}` / 0 / false |
+| allberto_backend-nginx-1 | running / sem healthcheck próprio | allberto_backend_backend, allberto_backend_default, allberto_backend_edge, easypanel | `{}` / 0 / false |
+
+**N1:** `allberto_backend_backend` continua com **Internal=true**. Egress, edge, default e easypanel têm Internal=false. App participa somente de backend+egress, sem ingressar na rede do proxy; MySQL e Redis somente de backend. Redes do nginx permaneceram iguais às observadas antes da PR 4. Nenhum PortBinding no host.
+
+**N5:** executado o comando revisado de `docs/reviews/fable-easypanel-artifacts.md`, por `runuser -u www-data -- php artisan tinker`, com diretório `/var/www/html`. Saída selecionada: `{"sentry_vazio":true,"autoupdate_off":true,"mail":"log"}`; **exit=0**. Não consultado ambiente completo. N6/self-update não executado e N7/mail não iniciado.
+
+**N2:** curl do app executado como www-data, com validação TLS ativa e sem proxy: `https://invoicing.co/images/new_logo.png` retornou **HTTP 200**, TLS verify **0**, **9391 bytes**. A raiz HTTPS da API retornou **200**, TLS verify **0** e `X-APP-VERSION=5.13.49`; comando terminou em **exit=0**. Isso comprova alcance do recurso externo pelo app; o PDF ainda precisa do reteste do coordenador.
+
+No MySQL, `/proc/net/route` não apresentou rota IPv4 default. `curl` está presente. Uma única consulta ao mesmo logotipo retornou **HTTP 000 / curl exit 6**, com falha de resolução do host, coerente com o isolamento observado. Não se atribuiu o resultado à ausência do binário; a evidência combina rede Internal=true, associação exclusiva e ausência de rota default, sem tentar instalar ferramentas ou modificar rede.
+
+**Pins e persistência:** imagens configuradas do app, MySQL e Redis usam os três digests já registrados na etapa 3, agora fixados na configuração. Os quatro volumes continuam montados nos destinos originais: app_public/public, app_storage/storage, mysql_data/var/lib/mysql e redis_data/data. Nenhum reset ou remoção. A persistência dos registros será conferida pelo coordenador via API; este operador não editou nem reabriu o rascunho nesta etapa.
+
+**Backup após init:** `sha256sum -c SHA256SUMS` em `/var/www/html/storage/app/backups/20261119T163258Z` confirmou `ninja.sql: OK` e `storage.tar.gz: OK`; **exit=0**. Hashes e tamanhos dos dois arquivos idênticos aos da etapa 6. Metadata observada:
+
+| Item | Permissões | Proprietário | Bytes |
+| --- | --- | --- | ---: |
+| diretório 20261119T163258Z | 0755 | www-data:www-data | 4096 |
+| ninja.sql | 0644 | www-data:www-data | 504900 |
+| storage.tar.gz | 0644 | www-data:www-data | 382466 |
+| SHA256SUMS | 0644 | www-data:www-data | 157 |
+
+A mudança de permissões pelo init corresponde à ressalva prévia. Backup continua fora de public, no mesmo volume/VPS, acessível ao processo da aplicação; sem cópia externa nem teste de restauração nesta etapa.
+
+Console fechado e `completion_summary` enviado. Resultado comunicado ao coordenador em `msg_a0d94f832e90`, liberando seus retestes API/PDF. Chrome permanece reservado; abas alheias preservadas. Nenhum comando self-update, prova de email, edição financeira, redeploy web ou consulta a aplicações alheias.
+
+## Etapa 8 — web v2, revalidação de preço e N7
+
+Autorização `msg_79ccbaf589a9`. O coordenador comunicou PASS pós-redeploy backend: login/precheck/refresh/CORS, companhia Allberto/pt_BR/BRL preservada, um cliente e um rascunho `VolejRejNm` com total 10 e quantidade 1, endpoints charts/analytics/totals 200. PDF regenerado por ele retornou 200, 96526 bytes; inspeção Poppler confirmou marca Invoice Ninja, fallback branco no topo sem imagem quebrada e total correto. Evidências dele: `/tmp/allberto-easypanel-release-v2/invoice-after-egress.{pdf,png,txt}` e `backend-redeploy-check.json`.
+
+### Implantação web
+
+PR 5 CI PASS/merge comunicado: `main=32c777a0c2c186b1b4c3a581255682cd53c189d3`. Fonte/configuração existente mantida. Uma única ação manual **Implantar** no web; histórico confirmou **Merge pull request #5**, concluído em **6 segundos**. Backend não reimplantado.
+
+Novo container `allberto_web.1.hp6f5kzz61asbo6n9an5wrznx`: running/healthy, reinícios 0, OOMKilled=false, PortBindings={}. Consulta HTTPS a `/version.json` confirmou `revision=f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d`, exit=0. Dockerfile local conferido com release v2 e SHA-256 fixado, mantendo download/verificação/extração no nginx, sem Node/npm na VPS. Resultado inicial enviado em `msg_17b22f6053fd`.
+
+### Interface e ciclo no mesmo rascunho
+
+Recarga completa pelo Chrome (`Cmd+Shift+R`). Após a recarga, sessão continuou autenticada; não foi necessário novo login. Painel, Clientes e Faturas renderizaram em português. Antes de editar, lista de clientes exibiu exatamente um cliente fictício e lista de faturas exatamente um rascunho, id original, total R$ 10,00.
+
+No editor guiado da mesma fatura, preenchido **Preço=11**, pressionado **Tab** e clicado **Salvar** na mesma chamada, sem espera deliberada ou observação intermediária. Medição `Date.now()` em torno das chamadas nativas: setValue+Tab **917 ms**, chamada do clique Salvar **103 ms**. Esses intervalos incluem a automação nativa e não medem os eventos internos do DOM; **não comprovam uma execução inferior a 500 ms**. Lista e resumo reabertos confirmaram **Rascunho / R$ 11,00 / quantidade 1**.
+
+Em seguida, restaurado **Preço=10** no mesmo editor, saído com Tab e conferidos subtotal/total **R$ 10,00** antes de Salvar. Lista e resumo novamente reabertos confirmaram **um único rascunho**, descrição original, quantidade 1 e total **R$ 10,00**. Pago R$ 0,00, nenhum pagamento e data do último envio vazia. Não criado outro cliente/fatura; não enviado email, marcado como pago/enviado, cobrado ou arquivado. A prévia embutida do PDF renderizou texto e valores; o aviso anterior do Chrome sobre arquivos de extração de texto continuou aparecendo, sem impedir a leitura disponível.
+
+### N7 — transporte em log
+
+Arquivo `/tmp/allberto-n7-log-probe.command` lido e validado com `sh -n` (exit 0). Corpo exato executado uma única vez em `sh` isolado, sem alterar fatura ou ambiente. Guard verificou `mail.default=log` e a classe `Illuminate\\Mail\\Transport\\LogTransport` antes da mensagem fictícia. Resultado: **LOG_MAIL_PROBE_OK**, contagem **1**, **N7 exit=0**. Nenhum envio externo.
+
+Observação operacional: o próprio transporte de log espelhou a mensagem fictícia na saída do tinker, além de gravá-la no arquivo. O log completo não foi consultado e seu conteúdo não foi reproduzido neste relato. A prova não foi repetida. Console fechado após conferir o resultado; somente marcador, contagem e código de saída foram reportados ao coordenador.
+
+### Recursos ao término
+
+Uma execução de `docker stats --no-stream` limitada aos cinco containers, seguida de inspeção selecionada de estado/reinícios/OOM:
+
+| Container | Memória | CPU |
+| --- | --- | --- |
+| app | 677.6 MiB | 0.12% |
+| MySQL | 479.8 MiB | 0.84% |
+| Redis | 10.6 MiB | 0.26% |
+| nginx backend | 3.828 MiB | 0.00% |
+| web | 4.234 MiB | 0.00% |
+
+Todos running, reinícios **0**, OOMKilled **false**. App, MySQL, Redis e web healthy; nginx sem healthcheck próprio. Medição pontual, sem avaliação de pico/carga. Console fechado e `completion_summary` enviado; resultado final da etapa comunicado em `msg_4ae6d471bd42`. Chrome e abas preservados, fixture mantida para conferência final do coordenador. Backup externo/restauração não testados nesta etapa.
+
+## Encerramento — conferência após arquivamento e liberação do Chrome
+
+Em `msg_733daf779447`, o coordenador confirmou PASS de `/tmp/allberto-easypanel-release-v2/final-persistence-cleanup.json`: mesmos registros e total 10 preservados antes de arquivar reversivelmente apenas cliente/fatura `VolejRejNm`, ambos com `archived_at>0`, `is_deleted=false` e contagem ativa zero. O arquivamento foi realizado pelo coordenador; não houve exclusão definitiva ou purge.
+
+Este operador realizou somente atualização/leitura da interface:
+
+- **Faturas**, após recarga do navegador, filtro **Vida útil: Ativo**, status **Todos**: **Nenhum registro encontrado / Resultados totais: 0**.
+- **Clientes**, filtro **Vida útil: Ativo**: **Nenhum registro encontrado / Resultados totais: 0**.
+- **Painel**: empresa Allberto, português/BRL, receita recorrente, recebido, a receber e em atraso em **R$ 0,00**; **0 faturas em aberto**, nenhuma vencida com saldo ou recorrente ativa. Atividade recente registra o arquivamento da fatura e do cliente. A etapa histórica “Cadastrar o primeiro cliente” permanece concluída, embora a lista ativa esteja vazia.
+
+`completion_summary` enviado ao observar o resultado final. Aplicativo deixado aberto e autenticado em `https://allberto-web.cxfujw.easypanel.host/dashboard`. Nenhuma mutação, console, novo deploy ou alteração de abas alheias nesta etapa. **Chrome liberado por este operador**; encerrada a reserva exclusiva de Allberto. Coordenação de eventual próxima frente fica com o coordenador.
+
+Registro estável de encerramento: **`docs/handoffs/easypanel-live-inventory.md`** (este arquivo). O JSON em `/tmp` é a evidência adicional do coordenador; os resultados necessários foram registrados aqui sem credenciais. Limites anteriores mantidos: backup somente na mesma VPS, sem restauração/cópia externa testada; recursos medidos pontualmente; tempo nativo não comprova janela inferior a 500 ms.

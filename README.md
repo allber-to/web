@@ -2,7 +2,7 @@
 
 Fork: [allber-to/web](https://github.com/allber-to/web). Upstream: [invoiceninja/web](https://github.com/invoiceninja/web).
 
-Este fork aplica a identidade e o frontend Allberto sobre os fluxos e contratos do Invoice Ninja. O frontend e a integração com backend real local foram validados e aprovados pelo CTO Fable 5.2. A implantação na VPS StayCloud já responde em HTTPS; a [story de publicação](docs/stories/003-easypanel-deploy.md) registra o aceite funcional em andamento, correções e limites.
+Este fork aplica a identidade e o frontend Allberto sobre os fluxos e contratos do Invoice Ninja. O frontend e a integração com backend real local foram validados e aprovados pelo CTO Fable 5.2. O [Allberto está publicado na VPS StayCloud](https://allberto-web.cxfujw.easypanel.host), conectado ao backend real por HTTPS. Login, edição de rascunho, PDF, portal e persistência após redeploy foram conferidos; a [story de publicação](docs/stories/003-easypanel-deploy.md) registra as evidências e os limites da homologação. E-mail permanece somente em log; backup externo com restauração testada é necessário antes de dados reais.
 
 ## Desenvolvimento local
 
