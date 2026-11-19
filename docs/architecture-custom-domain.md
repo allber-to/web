@@ -6,6 +6,8 @@ Nota de execução do coordenador: domínio adquirido e conta StayCloud foram po
 
 Adendo do coordenador: o proprietário orientou cadastrar domínios em vez de redirecionamento. Essa decisão substitui a recomendação original para `www`: apex e `www` serão hosts do mesmo serviço web, sem redirect entre eles. D9 abaixo acompanha essa preferência; sessões por origem continuam independentes.
 
+Adendo posterior do proprietário: o administrativo passa a usar **`painel.allber.to`**, pois `allber.to` terá o site público. Adicionar somente A `painel` para a VPS, DNS only/TTL Auto, e domínio HTTPS no serviço web existente. `api.allber.to`, pacote, ambiente e serviços permanecem os mesmos. Apex/www ficam como aliases de transição até existir o site substituto. A evidência P1–P5 e o D8 no host administrativo novo serão registrados na story e revisão de runtime.
+
 **Decisão: o plano do coordenador está correto e pode seguir, na ordem da seção 5.** Acrescento quatro ajustes, na seção 3.
 
 Não usei navegador, VPS nem painel. Li a fonte e a documentação já consultadas e fiz consultas públicas de DNS, somente leitura.
@@ -62,6 +64,7 @@ Eles são o rollback. Não remover nesta tarefa.
 | `allber.to` | A | `192.102.140.18` | desligado |
 | `api` | A | `192.102.140.18` | desligado |
 | `www` | CNAME | `allber.to` | desligado |
+| `painel` | A | `192.102.140.18` | desligado |
 
 Sem curinga. Sem AAAA: a VPS não foi verificada em IPv6, e um AAAA errado quebra o acesso para quem prefere IPv6.
 
@@ -69,7 +72,8 @@ Sem curinga. Sem AAAA: a VPS não foi verificada em IPv6, e um AAAA errado quebr
 
 | Serviço | Domínio novo | Destino |
 | --- | --- | --- |
-| `web` | `allber.to` | porta 80, HTTPS |
+| `web` | `painel.allber.to` | porta 80, HTTPS, endereço administrativo escolhido posteriormente |
+| `web` | `allber.to` | porta 80, HTTPS, alias de transição até o site público |
 | `web` | `www.allber.to` | porta 80, HTTPS, host adicional sem redirect para o apex |
 | `backend` | `api.allber.to` | serviço interno `nginx`, porta 80, HTTPS |
 
@@ -78,6 +82,8 @@ Os domínios `*.cxfujw.easypanel.host` continuam.
 ### Backend
 
 Uma variável muda: `APP_URL=https://api.allber.to`, sem barra final. Todo o resto do ambiente fica igual: `APP_KEY`, senhas, `TRUSTED_PROXIES`, volumes. Redeploy do serviço `backend`.
+
+Complemento confirmado na execução: atualizar também o campo persistido da empresa `portal_domain` para a nova origem. O backend 5.13.49 prioriza esse campo nos links e o inicializa com APP_URL na criação da conta. Usar PUT parcial contendo somente `portal_domain` e `portal_mode=domain` (modo existente, necessário para validar a URL); não enviar `settings` ou outros campos. Conferir settings e chaves de convite antes/depois. Essa alteração não exige outro redeploy.
 
 ### Frontend
 
@@ -120,19 +126,19 @@ Cada etapa só começa quando a anterior tem a evidência indicada.
 | D5 | O PDF da fatura de teste e o link de portal saem com `https://api.allber.to` | prefixo do link, sem a chave; PDF 200 |
 | D6 | `https://allber.to/version.json` traz a revisão do novo pacote; o JavaScript servido contém `https://api.allber.to` e tem o hash do pacote verificado | respostas e hash |
 | D7 | Verificador de bundle aprovado com a nova origem; hash da release pública igual ao do `Dockerfile` | saída do verificador e cálculo do hash |
-| D8 | Login em `https://allber.to`, Painel carregado, sem erro de CORS nem conteúdo misto | status das chamadas, sem corpos |
+| D8 | Login em `https://painel.allber.to`, Painel carregado, sem erro impeditivo de CORS/conteúdo misto; novo host escolhido pelo proprietário | observação do aplicativo e, quando disponível, status das chamadas sem corpos |
 | D9 | `https://www.allber.to/` e rota profunda servem o mesmo frontend, sem redirect para outro host | status, versão e HTML iguais ao apex |
 | D10 | Os hosts temporários continuam respondendo | uma requisição a cada |
 | D11 | Configuração do backend intacta além de `APP_URL`: Sentry vazio, autoatualização desligada, e-mail em log | o mesmo comando de três valores usado antes |
 
-Validar só com o que já existe. Para D5, usar a fatura fictícia arquivada: restaurá-la, gerar o PDF e arquivá-la de novo, se o operador julgar seguro; caso contrário, registrar D5 como não verificado. Não criar dados novos, não enviar e-mail, não registrar pagamento.
+Validar só com o que já existe. A execução de D5 confirmou que a fatura fictícia arquivada pode gerar PDF com o token administrativo, pelo mesmo caminho usado pelo frontend. A rota exige `token_auth`; sem o cabeçalho, retorna 403 independentemente do arquivamento. Não restaurar/rearquivar a fatura para esse teste, não criar dados novos, não enviar e-mail nem registrar pagamento.
 
 ## 7. Rollback
 
 Em ordem do mais provável para o menos:
 
 - **Frontend novo com problema:** reverter no `Dockerfile` a URL e o hash para a release anterior e redeployar o `web`. O pacote anterior aponta para o host temporário da API, que continua no ar.
-- **Backend com `APP_URL` novo com problema:** restaurar o valor anterior e redeployar. Nenhum dado é tocado.
+- **Backend com a nova origem com problema:** restaurar `APP_URL` anterior e redeployar; restaurar também `company.portal_domain` via PUT parcial com `portal_mode=domain` se o portal precisar voltar ao host temporário. Os hashes/chaves dos convites e valores financeiros não mudam. Enquanto portal_domain estiver na nova origem, o login de portal por domínio no host temporário pode não localizar a empresa; a raiz temporária responder não prova esse login.
 - **Certificado não emitido:** remover o domínio no painel, conferir o DNS e adicionar de novo. Os hosts temporários não são afetados.
 - **DNS:** os registros novos são aditivos. Só voltar os nameservers à Namecheap se o e-mail encaminhado estiver em uso e parar.
 
@@ -142,11 +148,8 @@ Não há passo irreversível neste plano. O mais lento de desfazer é a troca de
 
 Backup externo, provedor de e-mail, gateway, restrição de `TRUSTED_PROXIES`, proxy da Cloudflare, DNSSEC e remoção dos hosts temporários. Seguem como estavam na revisão final da homologação, que continua valendo: o domínio próprio não torna o ambiente apto a dados reais.
 
-## 9. Não verificado
+## 9. Estado da verificação após execução
 
-- Que o domínio comprado é `allber.to`.
-- Se há encaminhamento de e-mail configurado na Namecheap.
-- Os nameservers que a Cloudflare vai atribuir.
-- IPv6 na VPS.
-- Se o EasyPanel desta instalação oferece regra de redirecionamento por serviço, e como ela se comporta.
-- Login, cookies e CORS nas novas origens: só o teste real (D8) confirma.
+A [story 004](stories/004-custom-domain.md), o [handoff ao vivo](handoffs/custom-domain-live.md) e a [revisão de runtime](reviews/fable-custom-domain-runtime.md) substituem a lista de hipóteses inicial. Domínio comprado, conta StayCloud, ausência de destinatários de encaminhamento, nameservers atribuídos, delegação, TLS e pacote publicado foram confirmados. D5 foi concluído sem restaurar registros.
+
+IPv6 continua não verificado e não há AAAA. Redirecionamento entre hosts não foi configurado por preferência explícita do proprietário; apex e www atendem diretamente. D8 e a saúde final pós-web são registrados no fechamento da story, sem inferir aprovação apenas pelo TLS ou pelos testes via API.

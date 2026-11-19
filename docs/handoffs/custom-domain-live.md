@@ -2,11 +2,13 @@
 
 Data: 19/11/2026. Operador Chrome: `777a7c50-10d2-44c7-a090-a6ec475c5f59`. Coordenador: `ecdf0c57-bcde-43e8-9066-dc595b02857f`.
 
-Estado atual: **zona Free allber.to configurada na conta StayCloud**, com A apex e api → `192.102.140.18`, CNAME www → `allber.to`, todos DNS only/TTL Auto; cinco MX e SPF preservados. **Custom DNS salvo pelo proprietário e confirmado após recarga**: `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`. **D1 público confirmado pelo coordenador às 17:56:41 UTC.** No EasyPanel, **allber.to e www.allber.to criados com HTTPS → web:80**, temporário preservado, sem redirect. **api.allber.to ainda não criado**: host preenchido, seleção de serviço Compose interrompida por mudança de foco para janela alheia; Criar não acionado. CUA parado, resultado comunicado em `msg_2ffe398b671c`. APP_URL/ambiente/deploy inalterados. Não duplicar registros/hosts ao retomar. Seções abaixo preservam a cronologia.
+Estado atual: **endereço administrativo definido como https://painel.allber.to**, por orientação do proprietário; `allber.to` fica destinado ao futuro site público. Zona Free na conta StayCloud com dez registros: A apex/api/painel → `192.102.140.18`, CNAME www → `allber.to`, DNS only/TTL Auto; cinco MX e SPF preservados. NS confirmados: `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`. Quatro hosts próprios HTTPS cadastrados no EasyPanel, temporários preservados, sem redirect. **Backend e web já implantados**: backend com `APP_URL=https://api.allber.to` e D11/saúde aprovados; web PR7, revisão `d8a873829cbbc2ba1f71df71b0022829e2568443`, healthz interno e D6 externo aprovados. O novo host painel reutiliza esse web sem outro deploy; P1–P3 DNS/TLS/HTTP aprovados pelo coordenador com resolução local normal. **D8/P4 pendente**: ao iniciar abertura do painel, a janela observada mudou de Cloudflare para Meet; controle interrompido antes de navegar ou digitar credenciais. Coordenador informado em `msg_cf6b378657ba`; CUA/foco/clipboard parados, aguardando coordenação. Apex/www continuam como estavam até existir site público substituto. Seções abaixo preservam a cronologia.
 
 ## Escopo autorizado
 
 Solicitação `msg_25f5768aaa81` e complemento `msg_ed32caed27a8`; referência técnica `docs/architecture-custom-domain.md`.
+
+Este é o escopo inicial. As decisões posteriores sem redirect e com administração em `painel.allber.to`, registradas abaixo, prevalecem.
 
 - Confirmar na Namecheap o domínio adquirido, esperado `allber.to`, sem registrar detalhes pessoais, financeiros ou do pedido.
 - Confirmar conta Cloudflare exatamente **StayCloud**, inventariar zona existente e usar plano Free, sem criar duplicata/conta ou recurso pago.
@@ -176,3 +178,85 @@ Nos dois formulários, HTTPS marcado, protocolo de destino HTTP, porta 80 e cami
 Na lista `allberto/backend/domains`, havia somente `https://allberto-backend.cxfujw.easypanel.host/` → `http://allberto_backend_nginx:80/`, preservado. Aberto **Criar Domínio**, HTTPS marcado, destino HTTP/80 e caminhos `/`; preenchido **api.allber.to**, confirmado por AX fresca. O campo **Serviço Compose** estava vazio. Ao clicar **Select service**, o guard retornou **The user changed '/Applications/Google Chrome.app'**. A única reconciliação `getApp` mostrou outra janela/aba alheia à tarefa, sem ação deste operador. Interrompida a operação sem nova tentativa, sem tocar nessa página alheia.
 
 **API não criada**: o botão Criar não foi acionado; serviço nginx ainda não selecionado. O formulário pode permanecer aberto e deve ser reconciliado antes de retomar. Não duplicar os dois hosts web já criados. `completion_summary` enviado e estado parcial comunicado ao coordenador em `msg_2ffe398b671c`. D2/TLS dos hosts web será verificado externamente pelo coordenador; este operador não realizou bypass de certificado, APP_URL/env/redeploy ou console. CUA/foco/clipboard parados até coordenação de retomada.
+
+## API criada — três hosts configurados
+
+Em `msg_938c3442da9a`, o coordenador informou apex e www com HTTP 200 e `ssl_verify_result=0` via `curl --resolve`, com TLS normal e pacote v2, enquanto o resolvedor local ainda tinha caminho/cache antigo. A API chegava à VPS com certificado padrão, consistente com host ainda ausente. Nenhuma credencial foi enviada às novas origens nessa validação.
+
+Em `msg_10ba31a6a414`, o coordenador transmitiu a resposta explícita do proprietário **Pode seguir; não usarei o Chrome**, reservando todas as janelas para a conclusão. A retomada selecionou a janela EasyPanel pelo menu nativo. O modal pendente ainda continha `api.allber.to`, HTTPS marcado, HTTP/80, caminhos `/` e Serviço Compose vazio.
+
+Fechado apenas o modal sem salvar, a lista confirmou somente o domínio temporário, evitando duplicação. Reaberto **Adicionar Domínio**, preenchido `api.allber.to`. O menu **Select service** apresentou mysql, redis, app e nginx; selecionado **nginx**, confirmado por AX fresca. Acionado **Criar** uma única vez. A UI retornou **Domínio criado** e mostrou:
+
+| Host de entrada | Destino | Estado |
+| --- | --- | --- |
+| https://api.allber.to/ | http://allberto_backend_nginx:80/ | Criado e listado |
+| https://allberto-backend.cxfujw.easypanel.host/ | http://allberto_backend_nginx:80/ | Preexistente, mantido |
+
+Com os dois hosts web já criados, os **três cadastros HTTPS estão concluídos na UI**, sem redirecionamentos entre hosts. Enviado `completion_summary` imediatamente após o resultado e notificado o coordenador em `msg_bc076f7d70e2` para validação TLS/D2 da API. Nenhum **Make primary**, APP_URL, ambiente, segredo, porta publicada, redeploy ou console alterado. Chrome continua reservado; próximas mudanças dependem do resultado D2 e instrução concreta do coordenador, sem novo pedido genérico de autorização.
+
+## Backend com origem própria — ambiente, implantação única e D11
+
+Em `msg_197c4addeb31`, o coordenador confirmou **D2 API PASS às 18:03:54 UTC**: raiz HTTPS 200, sem redirect, versão 5.13.49; health 200; setup 302 para `https://api.allber.to`; HTTP 301 para HTTPS. Apex/www tiveram TLS validado diretamente na VPS com `--resolve` e validação normal, enquanto o resolvedor local do Mac ainda podia devolver estacionamento. Autorizou atualizar somente o ambiente Compose backend a partir do arquivo privado preparado por ele e implantar uma única vez.
+
+Arquivo `/Users/luizgustavoavila/.config/allberto/easypanel-backend.env`, modo **0600**, comparado por assert com `easypanel-backend.pre-domain-20261119.env`: **somente APP_URL mudou**, para `https://api.allber.to`. Nenhum conteúdo privado impresso. Aberto no Editor de Texto, lido em memória com saída AX suprimida, estrutura conferida e comparada ao editor atual do backend; demais valores iguais. Arquivo fechado sem modificação. Transferência nativa para o editor exclusivo de `allberto/backend/environment`, sem screenshot ou emissão dos valores. **Criar arquivo .env** permaneceu marcado. Salvar retornou **Env atualizado**.
+
+Acionado **Implantar** do backend uma única vez. Histórico: **Merge pull request #6**, concluído em **26 segundos**. Nenhum deploy web, rotação de APP_KEY/senhas, alteração de portas, remoção/reset de volumes ou mudança de domínio temporário.
+
+No Console GLOBAL, `docker ps` filtrado por `allberto` confirmou o nome atual `allberto_backend-app-1`. Executado o corpo exato de `/tmp/allberto-domain-n5.command`, preparado pelo coordenador em `msg_68349c2d0d4c`, também aprovado por `sh -n` neste operador. Leitura como **www-data**, diretório `/var/www/html`, apenas quatro valores:
+
+```json
+{"app_url":"https://api.allber.to","sentry_vazio":true,"autoupdate_off":true,"mail":"log"}
+```
+
+**D11_exit=0.** Nenhum dump de configuração/ambiente, consulta a logs brutos, self-update ou teste de email.
+
+| Container | Saúde | Estado / reinícios / OOM / PortBindings |
+| --- | --- | --- |
+| allberto_backend-app-1 | healthy | running / 0 / false / `{}` |
+| allberto_backend-mysql-1 | healthy | running / 0 / false / `{}` |
+| allberto_backend-redis-1 | healthy | running / 0 / false / `{}` |
+| allberto_backend-nginx-1 | sem healthcheck próprio | running / 0 / false / `{}` |
+| allberto_web.1.* | healthy | running / 0 / false / `{}` |
+
+`docker inspect --format` foi limitado a nome, estado, reinícios, OOM, PortBindings e mounts dos cinco containers Allberto. App e nginx mantêm `allberto_backend_app_public` → `/var/www/html/public` e `allberto_backend_app_storage` → `/var/www/html/storage`; MySQL mantém `allberto_backend_mysql_data` → `/var/lib/mysql`; Redis mantém `allberto_backend_redis_data` → `/data`. Web sem mounts. DB/Redis/web continuavam com uptime aproximado de uma hora; somente app/nginx foram recriados nesta implantação. As portas mostradas por `docker ps` são internas, sem bind publicado no host.
+
+Console fechado e `completion_summary` enviado. Resultado comunicado imediatamente em `msg_cf3f14caadfc` para retestes D3–D5 pelo coordenador. Persistência dos dados de negócio e fluxo funcional no domínio próprio ainda dependem desses retestes; esta etapa confirma configuração e saúde. Chrome permanece reservado, sem iniciar atualização do frontend.
+
+## Frontend PR7 implantado — saúde e versão confirmadas
+
+O coordenador informou **D3–D5 PASS** em `msg_16b0f30065a8`, após corrigir `company.portal_domain` pela API pública suportada, preservando configurações, chaves, itens e fixtures arquivadas; PDF administrativo retornou 200 e foi renderizado sem imagens quebradas. Autorizou somente web, uma implantação, depois de CI verde e merge PR7 em `631de138629c07afdca9f770a2184d81f7520682`.
+
+No serviço existente `allberto/web`, fonte Git main/Dockerfile leve mantida, sem ambiente ou build args novos. **Implantar acionado uma única vez**; histórico confirmou **Merge pull request #7**, concluído em **5 segundos**. Memória observada na UI após a conclusão: **4.4 MB**. Coordenador informado em `msg_e1548a8231ff` para iniciar D6.
+
+No Console do Serviço do novo container `allberto_web.1.yq2t5jt4775z2sadwp44gl0fe`, executadas somente duas leituras HTTP internas:
+
+- `http://127.0.0.1/healthz` → **ok**.
+- `http://127.0.0.1/version.json` → revisão **d8a873829cbbc2ba1f71df71b0022829e2568443**, builtAt **2026-11-19T17:27:33.877Z**.
+
+Console fechado. Nenhuma nova inspeção Docker/OOM após esse deploy web; a última medição dos cinco containers sem OOM/reinícios pertence à etapa backend acima. Saúde HTTP interna e revisão do container foram confirmadas diretamente. Nenhum segundo deploy backend/web, alteração financeira, fonte, ambiente ou redirect.
+
+Em `msg_0f5730971b2c`, o coordenador informou **D6 externo PASS**, 14 verificações em `/tmp/allberto-custom-domain-release/frontend-final-check.json`: apex/www, revisão, healthz, arquivos e chunks iguais ao pacote local, API própria presente e host temporário ausente do bundle. Testes usaram `--resolve` para a VPS com TLS normal, pois o DNS local ainda devolvia estacionamento. Temporários servindo o novo web. O hash de tar esperado, informado pelo coordenador, é `7a893ca6a434f7f4344ba816b619009ada06b6519b9abce288bfac21033812f6`; este operador não recalculou o arquivo no servidor.
+
+## D8 — tentativa única no Chrome terminou em timeout
+
+Aberta nova aba e navegado explicitamente para **https://allber.to**. A navegação permaneceu pendente inicialmente; nenhuma recarga foi acionada. Ao terminar, a AX exibiu página de erro do Chrome com **Não é possível acessar esse site**, **allber.to demorou muito para responder** e **ERR_CONNECTION_TIMED_OUT**.
+
+**Allberto não renderizou nessa tentativa; também não foi exibida página de estacionamento antes do timeout.** A observação do Chrome, isoladamente, não identifica a causa. O cache DNS antigo foi relatado pelo coordenador em consultas locais separadas. Não foram digitadas credenciais, usado bypass de certificado, alterados DNS/hosts globais, repetida a navegação, nem refeitos registros/NS/certificados/deploy. Login, Painel pt_BR/BRL e listas ativas no domínio próprio continuam **não verificados pela UI**.
+
+`completion_summary` enviado imediatamente após observar o erro. Relatório ao coordenador em `msg_7777f6b26dd8`. Ele informou aceite CTO de D1–D7 e D9–D11; **D8 permanece pendente** por acesso local. CUA/foco/clipboard parados, Chrome reservado até encerramento explícito. A aba com o erro foi preservada para evidência; nenhuma aba alheia fechada ou modificada.
+
+## Painel em subdomínio — DNS e HTTPS concluídos, P4 interrompido
+
+Em `msg_a94ba2a3df1c`, o coordenador transmitiu a decisão direta do proprietário: reservar a raiz para futuro site público e usar **painel.allber.to** para administração. D8 no apex foi suspenso. `api.allber.to` permanece backend/portal; apex/www e hosts temporários devem continuar como estão até existir o site substituto. Nenhum serviço, build, ambiente, APP_URL ou deploy adicional foi necessário.
+
+Na conta **StayCloud**, zona **allber.to**, a lista inicial tinha nove registros e não continha painel. Criado somente **A painel → 192.102.140.18**, **Somente DNS**, **TTL Auto**, com um Save. A lista final confirmou dez registros, incluindo painel; apex/api/www, cinco MX e SPF preservados. O banner de DNS ainda indicava pendência nessa observação inicial.
+
+O coordenador confirmou **P1 PASS às 18:31:55 UTC** em `msg_926531068d3c`: ambos autoritativos Cloudflare, 1.1.1.1, 8.8.8.8 e resolução local `getaddrinfo` retornavam a VPS. Evidência externa: `painel-dns-check.json`.
+
+Somente depois de P1, reconciliada a lista de `allberto/web`: temporário, apex e www existentes, painel ausente. Criado uma única vez, com HTTPS marcado, destino HTTP porta 80 e caminhos `/`. Toast **Domínio criado** e lista confirmaram **https://painel.allber.to/ → http://allberto_web:80/**. Nenhum Make primary, redirect, alteração de fonte/ambiente ou implantação. `completion_summary` enviado; coordenador avisado em `msg_324a080bc839`.
+
+Na leitura posterior da Visão Geral da Cloudflare, a interface passou a mostrar **Seu domínio agora está protegido pela Cloudflare** e **Configuração de DNS: Completo**, sem pendência ou botão explícito para verificar NS observado. Não foi acionada verificação de NS, configuração de proxy, mudança de plano ou recurso. O texto promocional da Visão Geral menciona proxy, mas a última tabela de DNS observada mostrava todos os registros **Somente DNS**; não inferir proxy ativo desse texto. O status literal `Active` não foi verificado na lista de zonas. Enviado `completion_summary` ao concluir a leitura.
+
+O coordenador informou **P2–P3 PASS** em `msg_e92e35d1a3c5`, com DNS local normal e sem `--resolve`: TLS válido (`ssl_verify_result=0`), HTTP 200 para raiz/dashboard/clients/healthz/version e chunks, revisão e conteúdo iguais ao pacote. Evidência: `/tmp/allberto-custom-domain-release/painel-https-check.json`, sete verificações. Autorizou login e leitura de Painel/Clientes/Faturas, sem mutações.
+
+Ao iniciar P4 com `super+t` para abrir o painel, a AX retornou uma janela alheia **Meet**, enquanto a observação anterior era Cloudflare. Não havia aba painel visível. O operador interrompeu imediatamente: nenhum endereço painel foi digitado, nenhuma credencial inserida, nenhum controle da chamada tocado, nenhuma recuperação de foco ou retry. A causa da mudança de janela não foi determinada. `completion_summary` enviado; relatório `msg_cf6b378657ba`. **Login, Painel pt_BR/BRL e listas ativas zero em painel.allber.to ainda não verificados pela UI.** CUA/foco/clipboard parados; não retomar por tempo decorrido. Não há liberação para outra frente por este registro: a coordenação decide o encerramento ou a retomada.

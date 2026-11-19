@@ -2,7 +2,7 @@
 
 Fork: [allber-to/web](https://github.com/allber-to/web). Upstream: [invoiceninja/web](https://github.com/invoiceninja/web).
 
-Este fork aplica a identidade e o frontend Allberto sobre os fluxos e contratos do Invoice Ninja. O frontend e a integração com backend real local foram validados e aprovados pelo CTO Fable 5.2. O [Allberto está publicado na VPS StayCloud](https://allberto-web.cxfujw.easypanel.host), conectado ao backend real por HTTPS. Login, edição de rascunho, PDF, portal e persistência após redeploy foram conferidos; a [story de publicação](docs/stories/003-easypanel-deploy.md) registra as evidências e os limites da homologação. E-mail permanece somente em log; backup externo com restauração testada é necessário antes de dados reais.
+Este fork aplica a identidade e o frontend Allberto sobre os fluxos e contratos do Invoice Ninja. O frontend e a integração com backend real local foram validados e aprovados pelo CTO Fable 5.2. O [Allberto está publicado na VPS StayCloud](https://painel.allber.to), conectado ao backend real por HTTPS. Na publicação inicial, login, edição de rascunho, PDF, portal e persistência após redeploy foram conferidos; a [story de publicação](docs/stories/003-easypanel-deploy.md) registra as evidências e os limites da homologação. A [migração para o domínio próprio](docs/stories/004-custom-domain.md) já tem API, PDF, TLS e pacote aprovados; o login no endereço administrativo pelo Chrome ainda está pendente por indisponibilidade de controle exclusivo da janela. E-mail permanece somente em log; backup externo com restauração testada é necessário antes de dados reais.
 
 ## Desenvolvimento local
 
@@ -43,7 +43,7 @@ Execute novamente `up -d` para retomar. Pare o ambiente quando não estiver em u
 
 ## Documentação do projeto
 
-O [Allberto no EasyPanel](https://allberto-web.cxfujw.easypanel.host) usa dois domínios HTTPS, com [API separada](https://allberto-backend.cxfujw.easypanel.host) e nenhuma porta do projeto publicada diretamente. O frontend é pré-compilado fora da VPS e instalado por pacote com SHA-256. Artefatos: `deploy/easypanel/`. A [arquitetura](docs/architecture-easypanel.md), o [handoff operacional](docs/handoffs/astra-easypanel.md) e a [story 003](docs/stories/003-easypanel-deploy.md) registram configuração, verificações e limites. Não reutilize credenciais ou dados do backend local nesse ambiente.
+O [Allberto no EasyPanel](https://painel.allber.to) usa o subdomínio administrativo `painel.allber.to`, com [API separada](https://api.allber.to) e nenhuma porta do projeto publicada diretamente. O frontend é pré-compilado fora da VPS e instalado por pacote com SHA-256. Artefatos: `deploy/easypanel/`. A [arquitetura](docs/architecture-easypanel.md), o [handoff operacional](docs/handoffs/astra-easypanel.md) e a [story 003](docs/stories/003-easypanel-deploy.md) registram configuração, verificações e limites. A [story 004](docs/stories/004-custom-domain.md) documenta DNS na Cloudflare, origem do portal, verificações e reversão; os hosts temporários foram preservados. `allber.to` e `www` ficam destinados ao futuro site público e servem como aliases de transição enquanto esse site não é publicado. Não reutilize credenciais ou dados do backend local nesse ambiente.
 
 - [Briefing e critérios de aceite](docs/project-brief.md)
 - [Plano, progresso e verificações](docs/stories/001-github-frontend.md)
