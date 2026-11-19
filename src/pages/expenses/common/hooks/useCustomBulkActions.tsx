@@ -1,0 +1,264 @@
+/**
+ * Invoice Ninja (https://invoiceninja.com).
+ *
+ * @link https://github.com/invoiceninja/invoiceninja source repository
+ *
+ * @copyright Copyright (c) 2022. Invoice Ninja LLC (https://invoiceninja.com)
+ *
+ * @license https://www.elastic.co/licensing/elastic-license
+ */
+
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  MdCategory,
+  MdDesignServices,
+  MdDownload,
+  MdTextSnippet,
+} from 'react-icons/md';
+import { endpoint } from '$app/common/helpers';
+import { toast } from '$app/common/helpers/toast/toast';
+import {
+  useAdmin,
+  useHasPermission,
+} from '$app/common/hooks/permissions/useHasPermission';
+import { useDisplayRunTemplateActions } from '$app/common/hooks/useDisplayRunTemplateActions';
+import { Expense } from '$app/common/interfaces/expense';
+import { ExpenseCategory } from '$app/common/interfaces/expense-category';
+import { useDocumentsBulk } from '$app/common/queries/documents';
+import { useBulk } from '$app/common/queries/expenses';
+import { CustomBulkAction } from '$app/components/DataTable';
+import { DynamicLink } from '$app/components/DynamicLink';
+import { DropdownElement } from '$app/components/dropdown/DropdownElement';
+import { Button } from '$app/components/forms';
+import { ComboboxAsync } from '$app/components/forms/Combobox';
+import { Icon } from '$app/components/icons/Icon';
+import { Modal } from '$app/components/Modal';
+import { BulkUpdatesAction } from '$app/pages/clients/common/components/BulkUpdatesAction';
+import { useChangeTemplate } from '$app/pages/settings/invoice-design/pages/custom-designs/components/ChangeTemplate';
+import { AddToInvoiceAction } from '../components/AddToInvoiceAction';
+import { useInvoiceExpense } from '../useInvoiceExpense';
+
+interface Props {
+  isVisible: boolean;
+  setIsVisible: Dispatch<SetStateAction<boolean>>;
+  selectedExpenses: Expense[];
+  setSelected?: Dispatch<SetStateAction<string[]>>;
+}
+
+function ChangeCategory({
+  isVisible,
+  setIsVisible,
+  selectedExpenses,
+  setSelected,
+}: Props) {
+  const [t] = useTranslation();
+  const [category, setCategory] = useState('');
+
+  const bulk = useBulk();
+
+  const { isAdmin, isOwner } = useAdmin();
+
+  useEffect(() => {
+    return () => {
+      setCategory('');
+    };
+  }, []);
+
+  const handleSubmit = () => {
+    toast.processing();
+
+    const ids = selectedExpenses.map(({ id }) => id);
+
+    bulk(ids, 'bulk_categorize', { category_id: category });
+
+    if (setSelected) {
+      setSelected([]);
+    }
+
+    setIsVisible(false);
+    setCategory('');
+  };
+
+  return (
+    <Modal
+      title={`${t('change')} ${t('category')}`}
+      visible={isVisible}
+      onClose={setIsVisible}
+      overflowVisible
+    >
+      <p>{t('recurring_expenses')}:</p>
+
+      <ul>
+        {selectedExpenses.map(({ id, number }) => (
+          <li key={id}>{number}</li>
+        ))}
+      </ul>
+
+      <ComboboxAsync<ExpenseCategory>
+        endpoint={endpoint('/api/v1/expense_categories')}
+        inputOptions={{
+          value: category,
+          label: t('category') ?? '',
+        }}
+        entryOptions={{
+          id: 'id',
+          label: 'name',
+          value: 'id',
+        }}
+        sortBy="name|asc"
+        onChange={(e) => (e.resource ? setCategory(e.resource.id) : null)}
+      />
+
+      <p>
+        <span className="capitalize">{t('manage')}</span>{' '}
+        <DynamicLink
+          className="lowercase"
+          to="/settings/expense_settings"
+          renderSpan={!isAdmin && !isOwner}
+        >
+          {t('expense_categories')}
+        </DynamicLink>
+      </p>
+
+      <Button onClick={handleSubmit}>{t('save')}</Button>
+    </Modal>
+  );
+}
+
+export const useCustomBulkActions = () => {
+  const [t] = useTranslation();
+
+  const hasPermission = useHasPermission();
+  const documentsBulk = useDocumentsBulk();
+
+  const { create } = useInvoiceExpense();
+
+  const { shouldBeVisible: shouldBeRunTemplateActionVisible } =
+    useDisplayRunTemplateActions();
+
+  const shouldDownloadDocuments = (expenses: Expense[]) => {
+    return expenses.some(({ documents }) => documents.length);
+  };
+
+  const getDocumentsIds = (expenses: Expense[]) => {
+    return expenses.flatMap(({ documents }) => documents.map(({ id }) => id));
+  };
+
+  const handleDisplayAddToInvoice = (expenses: Expense[]) => {
+    return expenses.every(({ should_be_invoiced, invoice_id }) => {
+      return should_be_invoiced && !invoice_id.length;
+    });
+  };
+
+  const handleDownloadDocuments = (
+    selectedExpenses: Expense[],
+    setSelected: Dispatch<SetStateAction<string[]>>
+  ) => {
+    const expenseIds = getDocumentsIds(selectedExpenses);
+
+    documentsBulk(expenseIds, 'download');
+    setSelected([]);
+  };
+
+  const handleInvoiceExpenses = (
+    selectedExpenses: Expense[],
+    setSelected: Dispatch<SetStateAction<string[]>>
+  ) => {
+    const clientIds = new Set(
+      selectedExpenses.map(({ client_id }) => client_id)
+    );
+
+    if (clientIds.size > 1) {
+      return toast.error('multiple_client_error');
+    }
+
+    create(selectedExpenses);
+    setSelected([]);
+  };
+
+  const [isChangeCategoryVisible, setIsChangeCategoryVisible] = useState(false);
+
+  const {
+    setChangeTemplateVisible,
+    setChangeTemplateResources,
+    setChangeTemplateEntityContext,
+  } = useChangeTemplate();
+
+  const customBulkActions: CustomBulkAction<Expense>[] = [
+    ({ selectedResources, setSelected }) => (
+      <DropdownElement
+        onClick={() =>
+          shouldDownloadDocuments(selectedResources)
+            ? handleDownloadDocuments(selectedResources, setSelected)
+            : toast.error('no_documents_to_download')
+        }
+        icon={<Icon element={MdDownload} />}
+      >
+        {t('documents')}
+      </DropdownElement>
+    ),
+    ({ selectedResources, setSelected }) =>
+      handleDisplayAddToInvoice(selectedResources) &&
+      hasPermission('create_invoice') && (
+        <DropdownElement
+          onClick={() => handleInvoiceExpenses(selectedResources, setSelected)}
+          icon={<Icon element={MdTextSnippet} />}
+        >
+          {t('invoice_expense')}
+        </DropdownElement>
+      ),
+    ({ selectedResources }) =>
+      handleDisplayAddToInvoice(selectedResources) && (
+        <AddToInvoiceAction expenses={selectedResources} bulkAction />
+      ),
+    ({ selectedResources, setSelected }) => (
+      <>
+        {selectedResources ? (
+          <ChangeCategory
+            isVisible={isChangeCategoryVisible}
+            setIsVisible={setIsChangeCategoryVisible}
+            selectedExpenses={selectedResources}
+            setSelected={setSelected}
+          />
+        ) : null}
+
+        <DropdownElement
+          onClick={() =>
+            selectedResources.length
+              ? setIsChangeCategoryVisible(true)
+              : toast.error('no_expenses_selected')
+          }
+          icon={<Icon element={MdCategory} />}
+        >
+          {t('change')} {t('category')}
+        </DropdownElement>
+      </>
+    ),
+    ({ selectedIds, setSelected }) => (
+      <BulkUpdatesAction
+        entity="expense"
+        resourceIds={selectedIds}
+        setSelected={setSelected}
+      />
+    ),
+    ({ selectedResources }) =>
+      shouldBeRunTemplateActionVisible && (
+        <DropdownElement
+          onClick={() => {
+            setChangeTemplateVisible(true);
+            setChangeTemplateResources(selectedResources);
+            setChangeTemplateEntityContext({
+              endpoint: '/api/v1/expenses/bulk',
+              entity: 'expense',
+            });
+          }}
+          icon={<Icon element={MdDesignServices} />}
+        >
+          {t('run_template')}
+        </DropdownElement>
+      ),
+  ];
+
+  return customBulkActions;
+};

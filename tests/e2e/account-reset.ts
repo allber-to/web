@@ -1,0 +1,46 @@
+import {
+  createApiContext,
+  ensurePermissionUserExists,
+  purgeAllEntities,
+  purgeGroupSettings,
+  purgeSchedules,
+  purgeUnsuffixedPermissionUsers,
+  resetCompanySettings,
+  resetPermissionUser,
+  resetUserReactSettings,
+  restoreDeletedUsers,
+} from './api-helpers';
+import {
+  accountEmail,
+  permissionBaseEmails,
+  type TestAccount,
+} from './accounts';
+import { e2eLog } from './log';
+
+export async function resetTestAccount(account: TestAccount, label?: string) {
+  const suffix = label ? ` (${label})` : '';
+  e2eLog(
+    `  Reset account lane ${account.id}${suffix}: ${account.ownerEmail}`
+  );
+
+  const api = await createApiContext(
+    account.apiUrl,
+    account.ownerEmail,
+    account.password
+  );
+
+  await resetUserReactSettings(api);
+  await resetCompanySettings(api);
+  await purgeSchedules(api);
+  await purgeGroupSettings(api);
+  await restoreDeletedUsers(api);
+
+  for (const email of permissionBaseEmails) {
+    const scopedEmail = accountEmail(email, account);
+    await ensurePermissionUserExists(api, scopedEmail);
+    await resetPermissionUser(api, scopedEmail);
+  }
+
+  await purgeUnsuffixedPermissionUsers(api, account);
+  await purgeAllEntities(api);
+}

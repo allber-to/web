@@ -1,0 +1,484 @@
+/**
+ * Invoice Ninja (https://invoiceninja.com).
+ *
+ * @link https://github.com/invoiceninja/invoiceninja source repository
+ *
+ * @copyright Copyright (c) 2022. Invoice Ninja LLC (https://invoiceninja.com)
+ *
+ * @license https://www.elastic.co/licensing/elastic-license
+ */
+
+import { useQueryClient } from '@tanstack/react-query';
+import { useAtomValue } from 'jotai';
+import { FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { MdContentCopy, MdLink } from 'react-icons/md';
+import { invalidationQueryAtom } from '$app/common/atoms/data-table';
+import { useColorScheme } from '$app/common/colors';
+import { TransactionStatus } from '$app/common/enums/transactions';
+import { endpoint } from '$app/common/helpers';
+import { request } from '$app/common/helpers/request';
+import { toast } from '$app/common/helpers/toast/toast';
+import { useCurrentCompany } from '$app/common/hooks/useCurrentCompany';
+import { $refetch } from '$app/common/hooks/useRefetch';
+import { TransactionRule } from '$app/common/interfaces/transaction-rules';
+import { ClientSelector } from '$app/components/clients/ClientSelector';
+import { Button } from '$app/components/forms';
+import Toggle from '$app/components/forms/Toggle';
+import { ProjectSelector } from '$app/components/projects/ProjectSelector';
+import { TabGroup } from '$app/components/TabGroup';
+import { ListBox } from './ListBox';
+
+export interface TransactionDetails {
+  base_type: string;
+  transaction_id: string;
+  status_id: string;
+  invoice_ids?: string;
+  payment_id?: string;
+}
+
+interface Props {
+  transactionDetails: TransactionDetails;
+  isCreditTransactionType: boolean;
+  transactionRule: TransactionRule | undefined;
+  onConverted?: () => void;
+}
+
+export function TransactionMatchDetails(props: Props) {
+  const [t] = useTranslation();
+
+  const colors = useColorScheme();
+  const company = useCurrentCompany();
+  const queryClient = useQueryClient();
+
+  const { transactionRule } = props;
+
+  const invalidationQuery = useAtomValue(invalidationQueryAtom);
+
+  const [vendorIds, setVendorIds] = useState<string[]>([]);
+  const [invoiceIds, setInvoiceIds] = useState<string[]>([]);
+  const [paymentIds, setPaymentIds] = useState<string[]>([]);
+  const [expenseIds, setExpenseIds] = useState<string[]>([]);
+  const [isFormBusy, setIsFormBusy] = useState<boolean>(false);
+  const [expenseCategoryIds, setExpenseCategoryIds] = useState<string[]>([]);
+  const [clientId, setClientId] = useState<string>('');
+  const [projectId, setProjectId] = useState<string>('');
+  const [shouldBeInvoiced, setShouldBeInvoiced] = useState<boolean>(
+    Boolean(company?.mark_expenses_invoiceable)
+  );
+  const [isTransactionConverted, setIsTransactionConverted] =
+    useState<boolean>(true);
+
+  const tabs = [
+    props.isCreditTransactionType ? t('create_payment') : t('create_expense'),
+    props.isCreditTransactionType ? t('link_payment') : t('link_expense'),
+  ];
+
+  const convertToPayment = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!invoiceIds.length || isFormBusy) {
+      return;
+    } else {
+      setIsFormBusy(true);
+
+      toast.processing();
+
+      request('POST', endpoint('/api/v1/bank_transactions/match'), {
+        transactions: [
+          {
+            id: props.transactionDetails.transaction_id,
+            invoice_ids: invoiceIds.join(','),
+          },
+        ],
+      })
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: [invalidationQuery],
+          });
+
+          $refetch(['invoices', 'bank_transactions']);
+
+          toast.success('converted_transaction');
+
+          props.onConverted?.();
+        })
+        .finally(() => setIsFormBusy(false));
+    }
+  };
+
+  const linkToPayment = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!paymentIds.length || isFormBusy) {
+      return;
+    } else {
+      setIsFormBusy(true);
+
+      toast.processing();
+
+      request('POST', endpoint('/api/v1/bank_transactions/match'), {
+        transactions: [
+          {
+            id: props.transactionDetails.transaction_id,
+            payment_id: paymentIds.join(','),
+          },
+        ],
+      })
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: [invalidationQuery],
+          });
+
+          $refetch(['invoices', 'payments', 'bank_transactions']);
+
+          toast.success('linked_transaction');
+
+          props.onConverted?.();
+        })
+        .finally(() => setIsFormBusy(false));
+    }
+  };
+
+  const convertToExpense = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if ((!vendorIds.length && !expenseCategoryIds.length) || isFormBusy) {
+      return;
+    } else {
+      setIsFormBusy(true);
+
+      toast.processing();
+
+      request('POST', endpoint('/api/v1/bank_transactions/match'), {
+        transactions: [
+          {
+            id: props.transactionDetails.transaction_id,
+            vendor_id: vendorIds.join(','),
+            ninja_category_id: expenseCategoryIds.join(','),
+            ...(projectId
+              ? { project_id: projectId }
+              : clientId && { client_id: clientId }),
+            should_be_invoiced: shouldBeInvoiced,
+          },
+        ],
+      })
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: [invalidationQuery],
+          });
+
+          $refetch(['bank_transactions', 'expenses']);
+
+          toast.success('converted_transaction');
+
+          props.onConverted?.();
+        })
+        .finally(() => setIsFormBusy(false));
+    }
+  };
+
+  const linkToExpense = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!expenseIds.length || isFormBusy) {
+      return;
+    } else {
+      setIsFormBusy(true);
+
+      toast.processing();
+
+      request('POST', endpoint('/api/v1/bank_transactions/match'), {
+        transactions: [
+          {
+            id: props.transactionDetails.transaction_id,
+            expense_id: expenseIds.join(','),
+          },
+        ],
+      })
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: [invalidationQuery],
+          });
+
+          $refetch(['expenses', 'bank_transactions']);
+
+          toast.success('linked_transaction');
+
+          props.onConverted?.();
+        })
+
+        .finally(() => setIsFormBusy(false));
+    }
+  };
+
+  useEffect(() => {
+    setIsTransactionConverted(
+      props.transactionDetails.status_id === TransactionStatus.Converted
+    );
+  }, [
+    props.transactionDetails.status_id,
+    props.isCreditTransactionType,
+    vendorIds,
+    invoiceIds,
+    expenseCategoryIds,
+    paymentIds,
+    expenseIds,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      setIsTransactionConverted(true);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (transactionRule) {
+      const categoryId =
+        transactionRule.category_id || transactionRule.expense_category?.id;
+      const vendorId = transactionRule.vendor_id || transactionRule.vendor?.id;
+
+      if (categoryId) {
+        setExpenseCategoryIds([categoryId]);
+      }
+
+      if (vendorId) {
+        setVendorIds([vendorId]);
+      }
+    }
+  }, [transactionRule]);
+
+  useEffect(() => {
+    const { invoice_ids, payment_id } = props.transactionDetails;
+
+    if (invoice_ids) {
+      setInvoiceIds(invoice_ids.split(',').filter(Boolean));
+    }
+
+    if (payment_id) {
+      setPaymentIds([payment_id]);
+    }
+  }, [props.transactionDetails.transaction_id]);
+
+  return (
+    <div className="flex flex-col flex-1">
+      <div
+        className="flex flex-col flex-1 border-t"
+        style={{
+          borderColor: colors.$24,
+        }}
+      >
+        {!isTransactionConverted && (
+          <TabGroup
+            className="flex flex-col flex-1 mt-2"
+            tabs={tabs}
+            height="full"
+            width="full"
+            withHorizontalPadding
+            horizontalPaddingWidth="1rem"
+          >
+            <div>
+              {props.isCreditTransactionType ? (
+                <ListBox
+                  style={{
+                    color: colors.$3,
+                    colorScheme: colors.$0,
+                    backgroundColor: colors.$1,
+                    borderColor: colors.$4,
+                  }}
+                  transactionDetails={props.transactionDetails}
+                  dataKey="invoices"
+                  setSelectedIds={setInvoiceIds}
+                  selectedIds={invoiceIds}
+                  calculateTotal
+                />
+              ) : (
+                <>
+                  <div
+                    className="flex flex-col space-y-4 px-5 py-4 border-b"
+                    style={{ borderColor: colors.$24 }}
+                  >
+                    <div className="flex space-x-4">
+                      <div className="flex-1 min-w-0">
+                        <ProjectSelector
+                          inputLabel={t('project')}
+                          value={projectId}
+                          clientId={clientId}
+                          onChange={(project) => setProjectId(project.id)}
+                          onClearButtonClick={() => setProjectId('')}
+                        />
+                      </div>
+
+                      {!projectId && (
+                        <div className="flex-1 min-w-0">
+                          <ClientSelector
+                            inputLabel={t('client')}
+                            value={clientId}
+                            onChange={(client) => setClientId(client.id)}
+                            onClearButtonClick={() => setClientId('')}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <Toggle
+                      label={t('should_be_invoiced')}
+                      checked={shouldBeInvoiced}
+                      onValueChange={setShouldBeInvoiced}
+                    />
+                  </div>
+
+                  <ListBox
+                    style={{
+                      color: colors.$3,
+                      colorScheme: colors.$0,
+                      backgroundColor: colors.$1,
+                      borderColor: colors.$4,
+                    }}
+                    transactionDetails={props.transactionDetails}
+                    dataKey="vendors"
+                    setSelectedIds={setVendorIds}
+                    selectedIds={vendorIds}
+                    seededVendors={
+                      transactionRule?.vendor ? [transactionRule.vendor] : undefined
+                    }
+                  />
+                  <ListBox
+                    style={{
+                      color: colors.$3,
+                      colorScheme: colors.$0,
+                      backgroundColor: colors.$1,
+                      borderColor: colors.$4,
+                    }}
+                    transactionDetails={props.transactionDetails}
+                    dataKey="categories"
+                    setSelectedIds={setExpenseCategoryIds}
+                    selectedIds={expenseCategoryIds}
+                    seededExpenseCategories={
+                      transactionRule?.expense_category
+                        ? [transactionRule.expense_category]
+                        : undefined
+                    }
+                  />
+                </>
+              )}
+
+              <div
+                className="px-3 py-3 w-full border-t"
+                style={{
+                  borderColor: colors.$24,
+                }}
+              >
+                <Button
+                  style={{
+                    color: colors.$3,
+                    backgroundColor: colors.$1,
+                    borderColor: colors.$24,
+                  }}
+                  className="w-full"
+                  onClick={
+                    props.isCreditTransactionType
+                      ? convertToPayment
+                      : convertToExpense
+                  }
+                  disableWithoutIcon={true}
+                  disabled={
+                    isFormBusy ||
+                    (props.isCreditTransactionType &&
+                      !invoiceIds.length &&
+                      !paymentIds.length) ||
+                    (!props.isCreditTransactionType &&
+                      !vendorIds.length &&
+                      !expenseCategoryIds.length &&
+                      !expenseIds.length)
+                  }
+                >
+                  <MdContentCopy fontSize={22} />
+
+                  <span>
+                    {props.isCreditTransactionType
+                      ? t('create_payment')
+                      : t('create_expense')}
+                  </span>
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              {props.isCreditTransactionType ? (
+                <ListBox
+                  style={{
+                    color: colors.$3,
+                    colorScheme: colors.$0,
+                    backgroundColor: colors.$1,
+                    borderColor: colors.$4,
+                  }}
+                  transactionDetails={props.transactionDetails}
+                  dataKey="payments"
+                  setSelectedIds={setPaymentIds}
+                  selectedIds={paymentIds}
+                  calculateTotal
+                />
+              ) : (
+                <ListBox
+                  style={{
+                    color: colors.$3,
+                    colorScheme: colors.$0,
+                    backgroundColor: colors.$1,
+                    borderColor: colors.$4,
+                  }}
+                  transactionDetails={props.transactionDetails}
+                  dataKey="expenses"
+                  setSelectedIds={setExpenseIds}
+                  selectedIds={expenseIds}
+                  calculateTotal
+                  addSelectAllButton
+                />
+              )}
+
+              <div
+                className="px-3 py-3 w-full border-t"
+                style={{
+                  borderColor: colors.$24,
+                }}
+              >
+                <Button
+                  style={{
+                    color: colors.$3,
+                    backgroundColor: colors.$1,
+                    borderColor: colors.$24,
+                  }}
+                  className="w-full"
+                  onClick={
+                    props.isCreditTransactionType
+                      ? linkToPayment
+                      : linkToExpense
+                  }
+                  disableWithoutIcon={true}
+                  disabled={
+                    isFormBusy ||
+                    (props.isCreditTransactionType &&
+                      !invoiceIds.length &&
+                      !paymentIds.length) ||
+                    (!props.isCreditTransactionType &&
+                      !vendorIds.length &&
+                      !expenseCategoryIds.length &&
+                      !expenseIds.length)
+                  }
+                >
+                  <MdLink fontSize={22} />
+
+                  <span>
+                    {props.isCreditTransactionType
+                      ? t('link_payment')
+                      : t('link_expense')}
+                  </span>
+                </Button>
+              </div>
+            </div>
+          </TabGroup>
+        )}
+      </div>
+    </div>
+  );
+}

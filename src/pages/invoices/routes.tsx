@@ -1,0 +1,216 @@
+/**
+ * Invoice Ninja (https://invoiceninja.com).
+ *
+ * @link https://github.com/invoiceninja/invoiceninja source repository
+ *
+ * @copyright Copyright (c) 2022. Invoice Ninja LLC (https://invoiceninja.com)
+ *
+ * @license https://www.elastic.co/licensing/elastic-license
+ */
+
+import { lazy } from 'react';
+import { Route } from 'react-router-dom';
+import { ModuleBitmask } from '$app/common/enums/module-bitmask';
+import { Guard } from '$app/common/guards/Guard';
+import { assigned } from '$app/common/guards/guards/assigned';
+import { enabled } from '$app/common/guards/guards/enabled';
+import { or } from '$app/common/guards/guards/or';
+import { permission } from '$app/common/guards/guards/permission';
+
+const Invoices = lazy(() => import('$app/pages/invoices/index/Invoices'));
+const Invoice = lazy(() => import('$app/pages/invoices/Invoice'));
+const Import = lazy(() => import('$app/pages/invoices/import/Import'));
+const Create = lazy(() => import('$app/pages/invoices/create/Create'));
+const Edit = lazy(() => import('$app/pages/invoices/edit/Edit'));
+const Pdf = lazy(() => import('$app/pages/invoices/pdf/Pdf'));
+const Email = lazy(() => import('$app/pages/invoices/email/Email'));
+const EInvoice = lazy(
+  () => import('$app/pages/invoices/edit/components/EInvoice')
+);
+const Verifactu = lazy(
+  () => import('$app/pages/invoices/edit/components/Verifactu')
+);
+const Quickbooks = lazy(
+  () => import('$app/pages/invoices/edit/components/Quickbooks')
+);
+const Documents = lazy(
+  () => import('$app/pages/invoices/edit/components/Documents')
+);
+const Payments = lazy(
+  () => import('$app/pages/invoices/edit/components/Payments')
+);
+const PaymentSchedule = lazy(
+  () => import('$app/pages/invoices/edit/components/PaymentSchedule')
+);
+const Settings = lazy(
+  () => import('$app/pages/invoices/edit/components/Settings')
+);
+const Activities = lazy(
+  () => import('$app/pages/invoices/edit/components/Activities')
+);
+const History = lazy(
+  () => import('$app/pages/invoices/edit/components/History')
+);
+const EmailHistory = lazy(
+  () => import('$app/pages/invoices/edit/components/EmailHistory')
+);
+const CreatePage = lazy(
+  () => import('$app/pages/invoices/create/components/CreatePage')
+);
+const UnappliedPayments = lazy(
+  () => import('$app/pages/invoices/edit/components/UnappliedPayments')
+);
+const Wizard = lazy(() => import('$app/pages/invoices/wizard/Wizard'));
+const WizardWho = lazy(() => import('$app/pages/invoices/wizard/steps/Who'));
+const WizardItems = lazy(
+  () => import('$app/pages/invoices/wizard/steps/Items')
+);
+const WizardPayment = lazy(
+  () => import('$app/pages/invoices/wizard/steps/Payment')
+);
+const WizardNotes = lazy(
+  () => import('$app/pages/invoices/wizard/steps/Notes')
+);
+const WizardSend = lazy(() => import('$app/pages/invoices/wizard/steps/Send'));
+const WizardEdit = lazy(() => import('$app/pages/invoices/wizard/Edit'));
+
+export const invoiceRoutes = (
+  <Route path="/invoices">
+    <Route
+      path=""
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            or(
+              permission('view_invoice'),
+              permission('create_invoice'),
+              permission('edit_invoice')
+            ),
+          ]}
+          component={<Invoices />}
+        />
+      }
+    />
+    <Route
+      path="import"
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            or(permission('create_invoice'), permission('edit_invoice')),
+          ]}
+          component={<Import />}
+        />
+      }
+    />
+
+    <Route
+      path="guided"
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            permission('create_invoice'),
+          ]}
+          component={<Wizard />}
+        />
+      }
+    >
+      <Route path="" element={<WizardWho />} />
+      <Route path="items" element={<WizardItems />} />
+      <Route path="payment" element={<WizardPayment />} />
+      <Route path="notes" element={<WizardNotes />} />
+      <Route path="send" element={<WizardSend />} />
+    </Route>
+
+    <Route
+      path=":id/guided"
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            or(permission('edit_invoice'), assigned('/api/v1/invoices/:id')),
+          ]}
+          component={<WizardEdit />}
+        />
+      }
+    />
+
+    <Route
+      path="create"
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            permission('create_invoice'),
+          ]}
+          component={<Create />}
+        />
+      }
+    >
+      <Route path="" element={<CreatePage />} />
+      <Route path="documents" element={<Documents />} />
+      <Route path="settings" element={<Settings />} />
+    </Route>
+
+    <Route
+      path=":id"
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            or(
+              permission('view_invoice'),
+              permission('edit_invoice'),
+              assigned('/api/v1/invoices/:id')
+            ),
+          ]}
+          component={<Invoice />}
+        />
+      }
+    >
+      <Route path="edit" element={<Edit />} />
+      <Route path="e_invoice" element={<EInvoice />} />
+      <Route path="verifactu" element={<Verifactu />} />
+      <Route path="quickbooks" element={<Quickbooks />} />
+      <Route path="documents" element={<Documents />} />
+      <Route path="settings" element={<Settings />} />
+      <Route path="activity" element={<Activities />} />
+      <Route path="history" element={<History />} />
+      <Route path="email_history" element={<EmailHistory />} />
+      <Route path="payments" element={<Payments />} />
+      <Route path="payment_schedule" element={<PaymentSchedule />} />
+      <Route path="unapplied_payments" element={<UnappliedPayments />} />
+    </Route>
+
+    <Route
+      path=":id/pdf"
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            or(
+              permission('view_invoice'),
+              permission('edit_invoice'),
+              assigned('/api/v1/invoices/:id')
+            ),
+          ]}
+          component={<Pdf />}
+        />
+      }
+    />
+    <Route
+      path=":id/email"
+      element={
+        <Guard
+          guards={[
+            enabled(ModuleBitmask.Invoices),
+            or(permission('edit_invoice'), assigned('/api/v1/invoices/:id')),
+          ]}
+          component={<Email />}
+        />
+      }
+    />
+  </Route>
+);

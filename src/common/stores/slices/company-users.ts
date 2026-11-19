@@ -1,0 +1,103 @@
+/**
+ * Invoice Ninja (https://invoiceninja.com).
+ *
+ * @link https://github.com/invoiceninja/invoiceninja source repository
+ *
+ * @copyright Copyright (c) 2022. Invoice Ninja LLC (https://invoiceninja.com)
+ *
+ * @license https://www.elastic.co/licensing/elastic-license
+ */
+
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { set } from 'lodash';
+import { currentIndexValue } from '$app/common/helpers/company-session';
+import { Account } from '$app/common/interfaces/account';
+import { CompanyUser as CompanyUserRecord } from '$app/common/interfaces/company-user';
+
+interface CompanyUser {
+  currentIndex: number;
+  api: any;
+  changes: {
+    company: any;
+  };
+}
+
+type AvailableResources = 'company';
+
+const initialState: CompanyUser = {
+  currentIndex: currentIndexValue()
+    ? parseInt(currentIndexValue() as string)
+    : 0,
+  api: {},
+  changes: {
+    company: undefined,
+  },
+};
+
+export const companyUserSlice = createSlice({
+  name: 'companyUser',
+  initialState,
+  reducers: {
+    changeCurrentIndex: (state, payload: PayloadAction<number>) => {
+      state.currentIndex = payload.payload;
+    },
+    updateCompanyUsers: (state, action) => {
+      state.api = action.payload;
+    },
+    injectInChanges: (
+      state,
+      action: PayloadAction<{ object: AvailableResources; data: any }>
+    ) => {
+      state.changes[action.payload.object] = action.payload.data;
+    },
+    updateChanges: (
+      state,
+      action: PayloadAction<{
+        object: AvailableResources;
+        property: string;
+        value: any;
+      }>
+    ) => {
+      state.changes[action.payload.object] = set(
+        state.changes[action.payload.object],
+        action.payload.property,
+        action.payload.value
+      );
+    },
+    resetChanges: (state, action: PayloadAction<AvailableResources>) => {
+      state.changes[action.payload] =
+        state.api[state.currentIndex][action.payload];
+    },
+    updateRecord: (
+      state,
+      action: PayloadAction<{
+        object: AvailableResources;
+        data: any;
+      }>
+    ) => {
+      state.api[state.currentIndex][action.payload.object] =
+        action.payload.data;
+    },
+    updateAccount: (state, action: PayloadAction<Account>) => {
+      const companyUsers = Object.values(
+        state.api ?? {}
+      ) as CompanyUserRecord[];
+
+      companyUsers.forEach((companyUser) => {
+        if (companyUser.account?.id === action.payload.id) {
+          companyUser.account = action.payload;
+        }
+      });
+    },
+  },
+});
+
+export const {
+  changeCurrentIndex,
+  updateCompanyUsers,
+  injectInChanges,
+  resetChanges,
+  updateChanges,
+  updateRecord,
+  updateAccount,
+} = companyUserSlice.actions;

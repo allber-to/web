@@ -1,0 +1,244 @@
+/**
+ * Invoice Ninja (https://invoiceninja.com).
+ *
+ * @link https://github.com/invoiceninja/invoiceninja source repository
+ *
+ * @copyright Copyright (c) 2022. Invoice Ninja LLC (https://invoiceninja.com)
+ *
+ * @license https://www.elastic.co/licensing/elastic-license
+ */
+
+import {
+  DragDropContext,
+  Draggable,
+  DraggableProvided,
+  Droppable,
+  DropResult,
+} from '@hello-pangea/dnd';
+import { arrayMoveImmutable } from 'array-move';
+import classNames from 'classnames';
+import { cloneDeep, set } from 'lodash';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDispatch } from 'react-redux';
+import { useColorScheme } from '$app/common/colors';
+import { useCompanyChanges } from '$app/common/hooks/useCompanyChanges';
+import { injectInChanges } from '$app/common/stores/slices/company-users';
+import { Element } from '$app/components/cards';
+import { SelectField } from '$app/components/forms';
+import { CircleXMark } from '$app/components/icons/CircleXMark';
+import { GridDotsVertical } from '$app/components/icons/GridDotsVertical';
+
+interface Props {
+  defaultVariables: { value: string; label: string }[];
+  for: string;
+  disabled?: boolean;
+  excludedVariables?: string[];
+  withDragPortal?: boolean;
+}
+
+interface VariableProps {
+  label: string | undefined;
+  provided: DraggableProvided;
+  disabled?: boolean;
+  onRemove: () => void;
+}
+
+function Variable(props: VariableProps) {
+  const colors = useColorScheme();
+
+  const { label, provided, disabled, onRemove } = props;
+
+  return (
+    <div
+      {...provided.draggableProps}
+      {...provided.dragHandleProps}
+      ref={provided.innerRef}
+      className="flex items-center justify-between text-sm"
+      style={{ ...provided.draggableProps.style, color: colors.$3 }}
+    >
+      <div className="flex items-center space-x-2 py-2">
+        <div>
+          <GridDotsVertical size="1.2rem" color={colors.$17} />
+        </div>
+
+        <span>{label}</span>
+      </div>
+
+      <div
+        className={classNames({
+          'cursor-not-allowed opacity-75': disabled,
+          'cursor-pointer': !disabled,
+        })}
+        onClick={() => !disabled && onRemove()}
+      >
+        <CircleXMark
+          color={colors.$16}
+          hoverColor={colors.$3}
+          borderColor={colors.$5}
+          hoverBorderColor={colors.$17}
+          size="1.5rem"
+        />
+      </div>
+    </div>
+  );
+}
+
+export function SortableVariableList(props: Props) {
+  const [t] = useTranslation();
+  const company = useCompanyChanges();
+  const dispatch = useDispatch();
+
+  const { disabled, excludedVariables, withDragPortal } = props;
+
+  const defaultVariables = props.defaultVariables;
+
+  const [defaultVariablesFiltered, setDefaultVariablesFiltered] =
+    useState(defaultVariables);
+
+  useEffect(() => {
+    const variables = company?.settings?.pdf_variables?.[props.for] ?? [];
+
+    setDefaultVariablesFiltered(
+      defaultVariables.filter(
+        (label) =>
+          !variables.includes(label.value) &&
+          !excludedVariables?.includes(label.value)
+      )
+    );
+  }, [company, excludedVariables]);
+
+  const resolveTranslation = (key: string) => {
+    return defaultVariables.find((field) => field.value === key);
+  };
+
+  const handleSelectChange = (value: string): void => {
+    if (value === '') {
+      return;
+    }
+
+    const companyClone = cloneDeep(company);
+
+    if (!companyClone.settings.pdf_variables) {
+      set(companyClone, 'settings.pdf_variables', {});
+
+      if (!companyClone.settings?.pdf_variables?.[props.for]) {
+        set(companyClone, `settings.pdf_variables.${props.for}`, []);
+      }
+    }
+
+    companyClone.settings.pdf_variables?.[props.for]?.push(value);
+
+    dispatch(injectInChanges({ object: 'company', data: companyClone }));
+  };
+
+  const remove = (property: string) => {
+    const companyClone = cloneDeep(company);
+
+    const filtered = companyClone.settings.pdf_variables?.[props.for].filter(
+      (variable: string) => variable !== property
+    );
+
+    set(companyClone, `settings.pdf_variables.${props.for}`, filtered);
+
+    dispatch(injectInChanges({ object: 'company', data: companyClone }));
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
+
+    if (!destination) {
+      return;
+    }
+
+    const companyClone = cloneDeep(company);
+
+    const variables: string[] =
+      companyClone.settings.pdf_variables?.[props.for] ?? [];
+
+    const visibleIndexes = [...variables.keys()].filter(
+      (index) => !excludedVariables?.includes(variables[index])
+    );
+
+    const filtered = arrayMoveImmutable(
+      variables,
+      visibleIndexes[source.index],
+      visibleIndexes[destination.index]
+    );
+
+    set(companyClone, `settings.pdf_variables.${props.for}`, filtered);
+
+    dispatch(injectInChanges({ object: 'company', data: companyClone }));
+  };
+
+  return (
+    <>
+      <Element leftSide={t('fields')}>
+        <SelectField
+          value=""
+          onValueChange={(value) => value && handleSelectChange(value)}
+          disabled={disabled}
+          customSelector
+          clearAfterSelection
+        >
+          <option value=""></option>
+
+          {defaultVariablesFiltered.map((option, index) => (
+            <option key={index} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </SelectField>
+      </Element>
+
+      <Element leftSide={t('variables')} textVerticalAlign="top">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable
+            droppableId={props.for}
+            isDropDisabled={disabled}
+            renderClone={
+              withDragPortal
+                ? (provided, _, rubric) => (
+                    <Variable
+                      label={resolveTranslation(rubric.draggableId)?.label}
+                      provided={provided}
+                      disabled={disabled}
+                      onRemove={() => remove(rubric.draggableId)}
+                    />
+                  )
+                : undefined
+            }
+          >
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef}>
+                {company?.settings?.pdf_variables?.[props.for]
+                  ?.filter(
+                    (label: string) => !excludedVariables?.includes(label)
+                  )
+                  ?.map((label: string, index: number) => (
+                    <Draggable
+                      key={label}
+                      draggableId={label}
+                      index={index}
+                      isDragDisabled={disabled}
+                    >
+                      {(provided) => (
+                        <Variable
+                          label={resolveTranslation(label)?.label}
+                          provided={provided}
+                          disabled={disabled}
+                          onRemove={() => remove(label)}
+                        />
+                      )}
+                    </Draggable>
+                  ))}
+
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </Element>
+    </>
+  );
+}
