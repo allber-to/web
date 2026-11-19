@@ -4,6 +4,8 @@ Data: 19/11/2026. Decisão técnica: Fable 5.2 (CTO). Implementação: Astra. Op
 
 **Decisão: GO para os artefatos.** A execução no painel depende das pré-condições da seção 2, que só o inventário do coordenador pode fechar.
 
+> **Atualização de 19/11/2026:** o proprietário autorizou publicar com os domínios temporários do EasyPanel em HTTPS. A seção 14 passa a ser o caminho principal e ajusta as seções 1, 3, 4, 6 e 10. A publicação por IP e portas fica como alternativa, só se as condições da seção 14 não se confirmarem.
+
 Este documento vem de leitura de fontes públicas e do repositório. Não acessei o painel, a VPS nem alterei nada em execução. O que não foi possível confirmar está marcado como **não confirmado**; nesses pontos não assumo comportamento do EasyPanel.
 
 ## 1. Decisão central: duas portas dedicadas, duas origens
@@ -279,3 +281,177 @@ Não fazer: deploy, acesso ao painel, publicação de imagem em registro, geraç
 - `invoiceninja/dockerfiles@84cc592`, pasta `debian/` — `init.sh`, Compose e supervisor oficiais.
 - `allber-to/invoiceninja@15ea35ea` — middleware de CORS e configuração.
 - Repositório: `docs/architecture-local-backend.md`, `docs/reviews/fable-local-backend.md`, `docs/handoffs/astra-easypanel-inventory.md`, `docs/stories/003-easypanel-deploy.md`, `package.json`.
+
+## 14. Adendo — domínios temporários do EasyPanel em HTTPS
+
+Data: 19/11/2026. Base: `main` em `96b1a1c907f33048849473250571da74ae5c0082` (PR #1 mesclada, CI aprovado).
+
+O pedido novo substitui a exigência de acesso por IP. Frontend e API continuam em **duas origens separadas**, agora dois nomes de host HTTPS servidos pelo proxy do painel, em vez de duas portas.
+
+O aceite dos artefatos (`docs/reviews/fable-easypanel-artifacts.md`) continua válido para o frontend, sem mudança. O Compose do backend precisa dos ajustes da seção 14.3, que **ainda não foram implementados nem validados**.
+
+### 14.1 O que conferi na fonte do backend 5.13.49
+
+- **Proxies confiáveis:** `TrustProxies` só confia em proxy quando `TRUSTED_PROXIES` está definido (`config/ninja.php:52`, padrão `false`). Os cabeçalhos aceitos são `X-Forwarded-For`, `-Host`, `-Port` e `-Proto`.
+- **`REQUIRE_HTTPS`:** é usado em um único ponto, `BaseController.php:1384`, a entrada da interface embutida: se a requisição não é vista como segura, redireciona para HTTPS.
+- **nginx do backend:** não informa ao PHP que a conexão é segura. O PHP só sabe pelo cabeçalho `X-Forwarded-Proto`, e só o considera se o proxy for confiável.
+- **Quem o PHP enxerga como cliente:** o nginx repassa o endereço de quem se conectou a ele, que passa a ser o proxy do painel.
+
+Consequência: com TLS terminado no proxy, **`TRUSTED_PROXIES` é obrigatório**. Sem ele, o backend acha que tudo chega por HTTP: com `REQUIRE_HTTPS=true` a raiz entra em laço de redirecionamento, e os links gerados a partir da requisição saem com `http://`.
+
+### 14.2 Condições a observar no painel antes do deploy
+
+O chat que opera o painel traz estes valores junto com P1–P5. Nenhum é presumido.
+
+| # | Condição | Se não se confirmar |
+| --- | --- | --- |
+| D1 | Dois nomes de host reais, um para o serviço `web` e um para o `nginx` do Compose `backend` | Sem os dois, voltar ao plano por IP e portas |
+| D2 | Os dois servidos em HTTPS com certificado que o navegador aceita | Não publicar com `REQUIRE_HTTPS=true`; reportar |
+| D3 | O painel permite adicionar domínio a um serviço Compose, escolhendo o serviço interno `nginx` e a porta 80 | A documentação descreve; se o plano instalado não permitir, reportar |
+| D4 | Depois de adicionado o domínio, o proxy alcança o `nginx` | Se responder erro de gateway, parar e reportar. Não inventar nome de rede externa no Compose |
+
+Não observado por mim e sem valor assumido: o formato do domínio temporário, se ele é gerado para serviço Compose ou só para App, como o painel conecta o proxy aos containers do Compose, e a faixa de endereços dessa rede. A documentação diz que serviços App novos recebem domínio automático "quando domínios automáticos estão configurados no servidor", e que o recurso de domínio personalizado automático exige licença paga; não sei qual é o caso desta instalação.
+
+### 14.3 Ajustes no Compose do backend (Astra)
+
+1. **Remover `ports` do serviço `nginx`** e a variável `API_PORT`. Nenhuma porta do projeto é publicada no host.
+2. **`REQUIRE_HTTPS: "true"`**, fixo.
+3. **`TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}`**. O valor `*` confia no par imediato do nginx.
+4. **`APP_URL`** continua variável obrigatória; passa a ser `https://<host da API>`, sem barra final.
+5. Manter a rede `backend` com `internal: true` e o serviço `app` só nela. **Não abrir saída para o `app`.**
+6. Manter `nginx` em `backend` e `edge`. Não declarar rede externa do painel pelo nome.
+7. Atualizar `env.example` e o handoff. Nenhuma mudança em `frontend.Dockerfile`, `frontend.conf` ou `verify-bundle.mjs`: uma origem `https://` já passa na validação.
+
+Por que `*` em `TRUSTED_PROXIES` é aceitável aqui, e quando deixa de ser:
+- Sem porta publicada, só chega ao `nginx` quem está numa rede Docker em comum com ele: o proxy do painel e os containers do próprio projeto.
+- Não conheço a faixa de endereços do proxy, então não há valor mais restrito que eu possa escrever sem inventar.
+- Se o inventário mostrar essa faixa, trocar `*` por ela pelo editor de ambiente, sem mudar o arquivo.
+- Se algum dia uma porta voltar a ser publicada direto, `*` passa a permitir forjar esses cabeçalhos e precisa sair.
+
+Sobre o isolamento: adicionar o domínio liga só o `nginx` ao proxy. O `app` continua sem rota de saída, então envio real de e-mail e chamadas a terceiros seguem impossíveis por construção.
+
+### 14.4 Frontend
+
+- `VITE_API_URL=https://<host da API>`, sem barra final. É obrigatório ser HTTPS: página HTTPS chamando API HTTP é bloqueada pelo navegador.
+- Domínio do painel no serviço `web`, porta interna 80. Sem porta publicada.
+- CORS não muda: o backend já aceita qualquer origem com token em cabeçalho.
+- Os segredos continuam só no ambiente do serviço Compose `backend`. Nada no nível do projeto. O `web` recebe apenas `VITE_API_URL` e, se necessário, `GIT_SHA`.
+
+### 14.5 Ordem
+
+1. Fechar P1–P5 e D1–D4.
+2. Deploy do `backend` com `APP_URL` em HTTPS; adicionar o domínio ao `nginx`.
+3. Verificar H1–H4 abaixo. Só então seguir.
+4. Deploy do `web` com `VITE_API_URL` apontando para o host da API.
+5. Verificar o restante.
+
+Trocar `APP_URL` depois é possível, mas todo link já emitido (portal, PDF enviado) deixa de valer. Isso pesa na passagem do domínio temporário para `allber.to`.
+
+### 14.6 Critérios de aceite ajustados
+
+Valem E1 e E3–E10 da seção 10, lendo "IP e porta" como "host HTTPS". E2 e os novos:
+
+| # | Critério | Evidência |
+| --- | --- | --- |
+| E2 | Nenhuma porta do projeto publicada no host; MySQL, Redis e 9000 inalcançáveis de fora | inspeção dos containers e teste externo |
+| H1 | Os dois hosts respondem em HTTPS com certificado válido | resposta e dados do certificado |
+| H2 | `GET https://<host da API>/` não entra em laço: no máximo um redirecionamento | sequência de status |
+| H3 | A mesma URL em `http://` redireciona para `https://` | status e cabeçalho de destino |
+| H4 | Uma resposta da API traz `X-APP-VERSION: 5.13.49` | cabeçalho |
+| H5 | Depois do login, o link de PDF e o de portal de uma fatura de teste começam com `https://<host da API>` | o prefixo do link, sem a chave do convite |
+| H6 | Console do navegador sem bloqueio por conteúdo misto e sem erro de CORS | relatório de rede só com método, caminho e status |
+
+H2 e H5 são os que provam que `TRUSTED_PROXIES` e os cabeçalhos do proxy funcionam. Falha em qualquer um deles, em E2 ou em E7 é bloqueio.
+
+### 14.7 Dados reais
+
+HTTPS remove o impedimento de tráfego em claro. Continuam valendo, antes de cadastrar dado financeiro ou pessoal real:
+- backup com destino fora da VPS e **uma restauração testada** (seção 7);
+- `APP_KEY` guardada pelo proprietário fora do painel;
+- ciência de que o domínio é temporário e que a troca posterior invalida links já enviados.
+
+Sem gateway e sem envio real de e-mail nesta fase, como antes.
+
+### 14.8 Fontes deste adendo
+
+- `allber-to/invoiceninja@15ea35ea`: `app/Http/Middleware/TrustProxies.php`, `config/ninja.php` (linhas 26 e 52), `app/Http/Controllers/BaseController.php` (linha 1384), `app/Http/Kernel.php`.
+- `deploy/easypanel/nginx/laravel.conf` (cópia do arquivo oficial).
+- EasyPanel, documentação oficial lida em 19/11/2026: [Compose Service](https://easypanel.io/docs/services/compose), [App Service](https://easypanel.io/docs/services/app), [Custom Service Domain](https://easypanel.io/docs/guides/custom-service-domain).
+
+## 15. Adendo — frontend pré-compilado fora da VPS
+
+Data: 19/11/2026. Motivo: o inventário real (`docs/handoffs/easypanel-live-inventory.md`) mostra 3,8 GB de memória **total** e 2 CPUs. A seção 5 pedia cerca de 4 GB livres só para o build do frontend. **O build com Node não roda na VPS.**
+
+### 15.1 Decisão
+
+**Compilar localmente, publicar o `dist` como arquivo de uma release pública do GitHub e, na VPS, construir uma imagem leve que só baixa, confere o hash e extrai.** É a proposta do coordenador, que adoto.
+
+Por que não imagem pronta no GHCR:
+- **Credencial:** o acesso disponível ao GitHub tem os escopos `repo` e `workflow`, sem `write:packages`. Publicar imagem exigiria credencial nova; publicar release usa a que já existe.
+- **Arquitetura:** a arquitetura da VPS ainda não foi observada. Um `tar.gz` de arquivos estáticos serve em qualquer uma; uma imagem teria de ser construída para a plataforma certa.
+- **Visibilidade:** um pacote novo no GHCR pode nascer privado e exigir ajuste manual. Não verifiquei esse comportamento; a release em repositório público dispensa a dúvida.
+
+O que se perde: a VPS ainda faz um build, mas trivial (baixar e extrair sobre `nginx:alpine`), sem Node e sem memória relevante.
+
+### 15.2 Como fica
+
+**Fora da VPS (Astra prepara, coordenador publica):**
+
+1. Com o host real da API conhecido (condição D1), construir o estágio `build` do `frontend.Dockerfile` já aceito, com `VITE_API_URL=https://<host da API>` e `GIT_SHA` igual ao commit publicado. O `verify-bundle.mjs` roda dentro desse build, como antes.
+2. Extrair `/app/dist` e empacotar em `allberto-web-<sha curto>.tar.gz`, com os arquivos na raiz do pacote.
+3. Calcular o SHA-256 do pacote.
+4. Criar uma release no repositório `allber-to/web`, marcada como pré-lançamento, com tag própria (por exemplo `web-<sha curto>-1`) apontando para o commit publicado, e anexar o pacote. Na descrição: commit, origem de API embutida, SHA-256.
+5. Gravar a URL do arquivo e o SHA-256 como valores padrão em `deploy/easypanel/Dockerfile` (abaixo) e fazer o commit.
+
+**Novo artefato `deploy/easypanel/Dockerfile`:**
+
+- base `nginx:alpine`;
+- `ARG DIST_URL` e `ARG DIST_SHA256`, **com os valores padrão versionados no arquivo**;
+- baixa o pacote, confere com `sha256sum -c` e **falha se o hash não bater**; extrai em `/usr/share/nginx/html`; apaga o pacote;
+- copia `frontend.conf`, o mesmo já aceito;
+- mesmo `HEALTHCHECK` do `frontend.Dockerfile`.
+
+Os valores ficam no arquivo, e não só no painel, por dois motivos: a publicação fica reproduzível a partir do Git, e não dependo de como esta instalação do EasyPanel entrega variáveis ao build, que ainda não foi observado. O painel pode sobrescrever os dois argumentos, mas não precisa.
+
+O arquivo se chama `Dockerfile` porque a documentação diz que o EasyPanel escolhe o builder Dockerfile sozinho quando o Build Path contém um arquivo com esse nome. O campo de caminho de Dockerfile ainda não foi visto nesta instalação.
+
+**Serviço `web` no painel:**
+
+- fonte GitHub `allber-to/web`, branch `main`, **Build Path `/deploy/easypanel`**;
+- nenhuma variável obrigatória; nenhum segredo;
+- domínio temporário apontando para a porta 80; Auto Deploy desligado.
+
+O `frontend.Dockerfile` original permanece no repositório: é o que gera o `dist` e continua sendo o caminho para quem tiver memória para o build completo.
+
+### 15.3 O que não muda
+
+- A seção 14 inteira: HTTPS, duas origens, ajustes do Compose do backend.
+- O critério E5: o verificador roda no build local, com a origem real. O pacote publicado é o resultado desse build.
+- O pacote contém só o que o navegador já receberia. O host da API é público por natureza. Nenhum segredo entra, e o verificador reprova se entrar.
+
+### 15.4 Ordem
+
+1. Operador confirma no painel os hosts reais (D1–D4) com os serviços vazios.
+2. Deploy do `backend`; verificar H1–H4.
+3. Build local com o host real da API; release; commit do `Dockerfile` com URL e hash.
+4. Deploy do `web`; verificar o restante.
+
+Trocar o host da API (por exemplo, na passagem para `allber.to`) exige repetir o passo 3: novo pacote, nova release, novo commit.
+
+### 15.5 Critérios de aceite adicionais
+
+| # | Critério | Evidência |
+| --- | --- | --- |
+| W1 | O SHA-256 do arquivo baixado da release é o que está no `Dockerfile` | cálculo independente sobre o arquivo público |
+| W2 | `verify-bundle.mjs` passa sobre o conteúdo extraído do pacote, com a origem real | saída do verificador |
+| W3 | O build do `web` na VPS mostra o hash conferido e não instala Node | saída do deploy |
+| W4 | `/version.json` publicado traz o commit que gerou o pacote | resposta |
+| W5 | Com hash errado, o build falha | teste local do `Dockerfile` com hash trocado |
+
+### 15.6 Rollback e limites
+
+- **Rollback do frontend:** reverter o commit do `Dockerfile` para a URL e o hash anteriores e redeployar. As releases antigas não são apagadas.
+- **Memória do backend:** a VPS tem cerca de 3,2 GB livres pela estimativa do inventário, e eu estimei 2 GB para os quatro containers. A margem existe, mas é estimativa sobre estimativa: observar o consumo depois do primeiro deploy, sobretudo ao gerar PDF.
+- O build da VPS depende de alcançar `github.com` e o Docker Hub. Não foi testado.
+- Não observado: arquitetura da VPS, forma de entrega de variáveis ao build, e se o plano com licença inativa permite serviço App com fonte GitHub e builder Dockerfile.
+- Publicar a release é um ato público no repositório do projeto. Faz parte do deploy já autorizado; quem publica é o coordenador.

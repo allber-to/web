@@ -4,14 +4,15 @@ services:
     restart: unless-stopped
     environment:
       APP_KEY: ${APP_KEY:?Set a new application key}
-      APP_URL: ${APP_URL:?Set the public API origin}
+      APP_URL: ${APP_URL:?Set the public HTTPS API origin without trailing slash}
       DB_PASSWORD: ${DB_PASSWORD:?Set a new database password}
       IN_USER_EMAIL: ${IN_USER_EMAIL:?Set the owner-approved administrator email}
       IN_PASSWORD: ${IN_PASSWORD:?Set a new administrator password}
       NINJA_ENVIRONMENT: selfhost
       APP_ENV: production
       APP_DEBUG: "false"
-      REQUIRE_HTTPS: "false"
+      REQUIRE_HTTPS: "true"
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
       IS_DOCKER: "true"
       PDF_GENERATOR: snappdf
       PHANTOMJS_PDF_GENERATION: "false"
@@ -39,7 +40,6 @@ services:
   nginx:
     build: ./nginx
     restart: unless-stopped
-    ports: ["${API_PORT:?Set an available API host port}:80"]
     networks: [backend, edge]
     volumes:
       - app_public:/var/www/html/public:ro

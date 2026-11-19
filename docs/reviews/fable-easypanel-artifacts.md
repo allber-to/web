@@ -148,3 +148,29 @@ Tudo que depende da VPS e do painel:
 - Backup e restauração: procedimento descrito, nunca executado.
 
 Continua valendo: enquanto for HTTP por IP, só dados de teste.
+
+## Suplemento — delta HTTPS do backend (19/11/2026)
+
+**Publicação autorizada.** Revisei só `deploy/easypanel/compose.yml` e `deploy/easypanel/env.example` contra `96b1a1c907f33048849473250571da74ae5c0082`. O novo `Dockerfile` leve do frontend e o handoff não fazem parte desta revisão.
+
+O delta é exatamente o da seção 14.3 da arquitetura, sem nada além:
+
+| Ajuste pedido | No arquivo |
+| --- | --- |
+| Remover porta publicada e `API_PORT` | `ports` saiu do `nginx`; `API_PORT` não aparece mais em nenhum dos dois arquivos |
+| `REQUIRE_HTTPS` verdadeiro | `REQUIRE_HTTPS: "true"`, fixo |
+| `TRUSTED_PROXIES` com padrão `*`, trocável | `${TRUSTED_PROXIES:-*}`; valor vazio também cai em `*` |
+| `APP_URL` em HTTPS | continua obrigatória; a mensagem de erro agora pede origem HTTPS sem barra final |
+| `app` sem saída | `app` só na rede `backend`, que segue `internal: true` |
+| `nginx` em `backend` e `edge`, sem rede externa nomeada | inalterado |
+
+O restante do arquivo não mudou: imagem pelo digest, `NINJA_ENVIRONMENT: selfhost`, `APP_DEBUG: "false"`, volumes, healthchecks.
+
+O que conferi:
+- li o diff inteiro;
+- validei a sintaxe do Compose com valores fictícios (`docker compose config -q`), sem criar container;
+- li o script de verificação do Astra: ele afirma, sobre a configuração efetiva, zero portas publicadas, `app` só na rede interna, `nginx` nas duas redes, nenhuma rede externa, HTTPS ligado e `TRUSTED_PROXIES` tanto no padrão quanto com valor explícito. O registro mostra aprovação. Não reexecutei o script.
+
+Uma atenção para quem preenche o ambiente no painel: o Compose não consegue impedir um `APP_URL` começando com `http://`. Com `REQUIRE_HTTPS` ligado, esse erro só apareceria como links errados no ar. Conferir o valor antes do deploy; o critério H5 pega se escapar.
+
+**Continua sem validação:** tudo que depende do painel. Que o proxy alcance o `nginx` sem porta publicada (D4), que os cabeçalhos encaminhados cheguem (H2, H5) e que o certificado seja emitido (H1) só se sabe no primeiro deploy.
