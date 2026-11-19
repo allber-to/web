@@ -8,17 +8,21 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import { useColorScheme } from '$app/common/colors';
+import { AllbertoLogo } from '$app/components/AllbertoLogo';
 import { Link } from '../../../components/forms/Link';
-import Logo from '../../../resources/images/invoiceninja-logo@dark.png';
 
 export function Header() {
+  const colors = useColorScheme();
+
   return (
-    <>
-      <div className="flex justify-center py-8">
-        <Link to="/">
-          <img src={Logo} alt="Invoice Ninja Logo" className="h-12" />
-        </Link>
-      </div>
-    </>
+    <div
+      className="ab-auth-header flex justify-center py-8"
+      style={{ color: colors.$3 }}
+    >
+      <Link to="/" className="ab-auth-logo" withoutDefaultStyling>
+        <AllbertoLogo />
+      </Link>
+    </div>
   );
 }

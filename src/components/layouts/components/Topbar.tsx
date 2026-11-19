@@ -15,30 +15,13 @@ import { useTranslation } from 'react-i18next';
 import { useCurrentUser } from '$app/common/hooks/useCurrentUser';
 import { useHandleDarkLightMode } from '$app/common/hooks/useHandleDarkLightMode';
 import { useReactSettings } from '$app/common/hooks/useReactSettings';
+import { AllbertoLogo } from '$app/components/AllbertoLogo';
 import { CompanySwitcher } from '$app/components/CompanySwitcher';
 import { Notifications } from '$app/components/Notifications';
 import { QuickCreatePopover } from '$app/components/QuickCreatePopover';
 import { Search } from '$app/pages/dashboard/components/Search';
 import { hideValuesAtom, privacySupportAtom } from '../common/privacy';
 import { NavLink } from './SidebarItem';
-
-export function AllbertoLogo() {
-  return (
-    <span className="ab-logo">
-      <span>allberto</span>
-      <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
-        <path
-          d="M60 64 V22 M60 64 L99.95 51.02 M60 64 L84.69 97.98 M60 64 L35.31 97.98 M60 64 L20.05 51.02"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="19"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
-  );
-}
 
 export function initialsOf(
   firstName?: string,
