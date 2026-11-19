@@ -7,6 +7,8 @@ Publicado em 19/11/2026 no EasyPanel 2.33.1 existente em `http://192.102.140.18:
 | Frontend Allberto | https://allberto-web.cxfujw.easypanel.host |
 | API / portal de clientes | https://allberto-backend.cxfujw.easypanel.host |
 
+Para operar o sistema, abrir o endereço **allberto-web**. A raiz de **allberto-backend** ainda oferece a interface original incluída na imagem do Invoice Ninja; ela usa os mesmos dados, mas não é o novo frontend Allberto. Quando `allber.to` estiver disponível, o domínio principal deverá apontar para o serviço web, mantendo a origem da API separada.
+
 Saúde, certificados, versão da API, login/refresh, CORS, login pela interface, rotas profundas, PDF e persistência após redeploy passaram. O incidente de perda de preço ao avançar rapidamente foi corrigido, testado e revisado; o pacote v2 foi implantado e conferido na interface. O cliente e o rascunho fictícios foram arquivados reversivelmente ao fim, deixando zero clientes e faturas ativos. O [CTO aprovou a entrega de homologação](reviews/fable-easypanel-runtime.md); a [story 003](stories/003-easypanel-deploy.md) registra evidências e limites. Backup externo e restauração continuam necessários antes de dados reais.
 
 A integração local foi concluída com Invoice Ninja 5.13.49: [aceite CTO](reviews/fable-local-backend.md). Ela cobre autenticação de administrador, dados persistidos, pagamento manual e PDF, com e-mails apenas em log. O histórico de e-mails do cliente/fatura depende de eventos de provedor e ainda deve ser validado em homologação com transporte real. A topologia local sem saída externa não é uma configuração de produção.
