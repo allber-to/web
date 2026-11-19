@@ -12,7 +12,7 @@ Verificações: `npm test`, `npx tsc --noEmit`, `npm run lint` e `npm run build`
 
 Para validar sem backend, use `npx playwright test --config playwright.allberto-local.config.ts`. Essa configuração separada renderiza os componentes reais com dados fictícios locais, bloqueia rede externa e não executa o reset de contas upstream. Requer o Google Chrome instalado. Veja [escopo e evidências da validação local](docs/handoffs/astra-local-validation.md).
 
-Para explorar a prévia com esses mesmos dados fictícios, execute `npx vite --config tests/local/vite.config.ts` e abra [o painel local em português](http://127.0.0.1:4178/tests/local/index.html?route=%2Fdashboard&lang=pt_BR&theme=light). Essa prévia cobre as sete telas documentadas e não grava dados.
+Para explorar a prévia com esses mesmos dados fictícios, execute `npx vite --config tests/local/vite.config.ts` e abra [o painel local em português](http://127.0.0.1:4178/tests/local/index.html?route=%2Fdashboard&lang=pt_BR&theme=light). Essa prévia cobre as sete telas documentadas e não grava dados. Encerre a prévia antes de rodar Playwright: ambos usam a porta 4178.
 
 ## Documentação do projeto
 

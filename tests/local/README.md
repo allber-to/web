@@ -4,4 +4,6 @@ Run `npx playwright test --config playwright.allberto-local.config.ts` from the 
 
 For manual Orca inspection, run `npx vite --config tests/local/vite.config.ts`, then open `http://127.0.0.1:4178/tests/local/index.html?route=%2Fdashboard&lang=pt_BR&theme=light`.
 
+Stop the manual preview before running Playwright; both use port 4178 and the test runner intentionally refuses to reuse a server.
+
 The real shell/pages are rendered with explicitly synthetic fixtures. API writes and unmapped endpoints fail closed; CSP and Playwright routing block external traffic. Routes outside the named local surfaces are not mounted. This is not authentication, backend, or financial-flow acceptance. See `docs/handoffs/astra-local-validation.md` for exact coverage, execution status, artifacts and limitations. Test artifacts stay in ignored `tests/local/artifacts/`.

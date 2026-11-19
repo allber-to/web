@@ -10,6 +10,8 @@ A implementação local inclui shell responsivo, temas claro/escuro, painel com 
 
 **Implementação e validação local concluídas**, na branch `luizstay/luiz-feat-link-github`, para revisão em PR de rascunho. Código aprovado por Fable 5.2, incluindo o suplemento dos últimos ajustes compartilhados. Passaram 343 testes unitários, lint global, build TypeScript/Vite e 13 testes de navegador com encerramento natural. Resultados, capturas e limites estão em [validação da entrega](validation.md). A branch `main` não recebeu merge deste trabalho.
 
+Publicação: implementação em `089ede817`, branch enviada ao fork e [PR #1 em rascunho](https://github.com/allber-to/web/pull/1). O hook pre-push executou lint e build com sucesso. A prévia local pode ser executada pelo comando do README; seus dados são sintéticos e não representam uma instalação do backend.
+
 O proprietário confirmou que não há backend de homologação: a validação usa dados fictícios e rede local interceptada. Autenticação, permissões do servidor, persistência e operações financeiras completas dependem de uma etapa posterior com backend descartável. Nenhuma implantação ou acesso ao WHMCS foi realizado.
 
 ## Documentação
