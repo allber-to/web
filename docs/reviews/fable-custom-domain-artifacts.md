@@ -74,3 +74,7 @@ Reverter as duas constantes para a release `web-f5cb28edb112-1` e seu hash `fcbf
 - O build leve com os novos valores.
 - O comportamento do painel quando um build falha.
 - Qualquer coisa nas novas origens: DNS completo, certificados, API, login, PDF. O domínio e a conta foram confirmados pelo coordenador na interface, não por mim.
+
+## Adendo do coordenador — preferência posterior do proprietário
+
+Após este parecer, o proprietário orientou cadastrar os domínios sem redirecionamento. `allber.to` e `www.allber.to` serão hosts HTTPS do mesmo serviço web; D9 da arquitetura foi atualizado para conferir ambos servindo o mesmo frontend. A pendência de criar regra de redirect acima foi substituída por essa decisão, sem alteração de `frontend.conf` ou da receita revisada. D1 foi confirmado publicamente às 17:57 UTC de 19/11/2026; certificados, migração do backend e deploy continuam dependentes das verificações seguintes.

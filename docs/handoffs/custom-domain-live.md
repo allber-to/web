@@ -2,7 +2,7 @@
 
 Data: 19/11/2026. Operador Chrome: `777a7c50-10d2-44c7-a090-a6ec475c5f59`. Coordenador: `ecdf0c57-bcde-43e8-9066-dc595b02857f`.
 
-Estado atual: **zona Free allber.to configurada na conta StayCloud**, com A apex e api → `192.102.140.18`, CNAME www → `allber.to`, todos DNS only/TTL Auto; cinco MX e SPF preservados. NS atribuídos: **jerry.ns.cloudflare.com** e **melinda.ns.cloudflare.com**. **Troca na Namecheap ainda não salva**: formulário Custom DNS aberto; preenchimento do primeiro campo teve timeout e estado incerto, segundo campo não preenchido, Save não acionado. Uma recuperação de leitura também expirou. CUA parado, coordenador informado em `msg_dce79fce564a`. EasyPanel/ambiente/deploy inalterados. Não criar segunda zona ou duplicar registros ao retomar. Seções abaixo preservam a cronologia.
+Estado atual: **zona Free allber.to configurada na conta StayCloud**, com A apex e api → `192.102.140.18`, CNAME www → `allber.to`, todos DNS only/TTL Auto; cinco MX e SPF preservados. **Custom DNS salvo pelo proprietário e confirmado após recarga**: `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`. **D1 público confirmado pelo coordenador às 17:56:41 UTC.** No EasyPanel, **allber.to e www.allber.to criados com HTTPS → web:80**, temporário preservado, sem redirect. **api.allber.to ainda não criado**: host preenchido, seleção de serviço Compose interrompida por mudança de foco para janela alheia; Criar não acionado. CUA parado, resultado comunicado em `msg_2ffe398b671c`. APP_URL/ambiente/deploy inalterados. Não duplicar registros/hosts ao retomar. Seções abaixo preservam a cronologia.
 
 ## Escopo autorizado
 
@@ -144,3 +144,35 @@ Enviado `completion_summary` e relatório ao coordenador em `msg_dce79fce564a`. 
 Em `msg_2db2f1480281`, o coordenador confirmou o recebimento e centralizou no chat principal a execução manual pelo proprietário: preencher Custom DNS com `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`, depois clicar **Save**. Essa etapa foi transferida por falha do controle, sem novo pedido de autorização e sem considerar o salvamento concluído.
 
 Este operador mantém **CUA, foco e clipboard parados**, sem recuperação por tempo decorrido. O estado confirmado permanece: nove registros revisados na Cloudflare, nomes exatos acima, Save não acionado por este operador. O coordenador verificará autoritativos Cloudflare e delegação pública; após confirmação do proprietário e DNS válido, coordenará retomada apenas no EasyPanel. APP_URL, ambiente e deploy continuam fora desta etapa. Nenhuma nova chamada CUA foi feita para registrar este handoff.
+
+## Nameservers persistidos e inspeção de redirecionamento
+
+Em `msg_a722ce014214`, após o proprietário confirmar **Salvei os dois nameservers**, o coordenador autorizou somente leitura de Namecheap e inspeção de redirect no EasyPanel, ainda sem adição de hosts/certificados. Ele informou delegação pública antiga naquele momento, sem concluir falha do salvamento.
+
+Selecionada a janela Namecheap pelo menu Janela. A página de `allber.to` mostrou **Custom DNS**, com `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`, sem controles Save/Cancel ativos. Uma recarga preservou ambos os valores. **Salvamento confirmado na interface**, sem edição ou repetição de Save pelo operador.
+
+No EasyPanel, projeto `allberto`, serviço `web`, página **Redirecionamentos**, não havia regras listadas. O formulário aberto para inspeção apresentou **Ativado** marcado, campos **Regex** e **Substituição**, **Permanente** desmarcado e botões **Criar** e **Close**. Não havia seletor explícito de host/domínio nesse formulário. O menu de exemplos continha **De WWW para sem WWW**, **De não-WWW para WWW**, **Domínio Antigo para Domínio Novo** e **Caminho Antigo para Novo Caminho**.
+
+Ao selecionar somente o exemplo WWW, o guard retornou **The user changed '/Applications/Google Chrome.app'**. A reconciliação `getApp` mostrou a página `web/domains`, navegação não executada por este operador; o formulário de redirect já estava fechado e apenas o domínio temporário estava listado. Operação interrompida e `completion_summary` enviado. Não foi possível ler a expressão/substituição do exemplo nem confirmar se a regex é aplicada à URL inteira ou ao caminho. Configuração aparenta ser do serviço; restringir host exigiria a expressão, sem evidência suficiente para assegurar ausência de loop no apex. Nenhuma regra foi criada. Relatório enviado em `msg_410ac1f896e1`.
+
+## Instrução direta posterior — domínio sem redirecionamento
+
+O proprietário determinou neste chat: **“cria um domínio na vez de redirecionamento”** e **“Não faz sentido fazer redirecionamento”**. Essa orientação substitui a intenção anterior de criar redirect WWW nesta tarefa. Prosseguir com o cadastro dos hosts em **Domínios**, sem configurar redirecionamento, após a validação pública de DNS/D1 e coordenação de retomada. Nenhuma nova chamada de UI nesta atualização; APP_URL/ambiente/redeploy continuam aguardando etapa própria.
+
+## D1 confirmado — dois hosts web criados, API pendente
+
+Em `msg_c3767bc3d91d`, o coordenador confirmou **D1 às 17:56:41 UTC**: autoritativo `.to` e resolvedores `1.1.1.1`/`8.8.8.8` retornando os NS Cloudflare atribuídos; apex/API com A `192.102.140.18` e www CNAME `allber.to` para o mesmo IP. Autorizada adição dos três hosts HTTPS, sem redirect, sem mudar ambiente ou implantar novamente.
+
+Selecionada a janela EasyPanel pelo menu nativo. Na lista `allberto/web/domains`, havia somente o host temporário. Criados separadamente, com confirmação **Domínio criado** após cada ação e lista atualizada:
+
+| Host de entrada | Destino | Resultado observado |
+| --- | --- | --- |
+| https://allber.to/ | http://allberto_web:80/ | Criado e listado |
+| https://www.allber.to/ | http://allberto_web:80/ | Criado e listado |
+| https://allberto-web.cxfujw.easypanel.host/ | http://allberto_web:80/ | Preexistente, mantido |
+
+Nos dois formulários, HTTPS marcado, protocolo de destino HTTP, porta 80 e caminhos `/`. Nenhum middleware/redirect configurado, nenhum **Make primary** acionado. Não houve alteração Cloudflare/proxy ou portas publicadas.
+
+Na lista `allberto/backend/domains`, havia somente `https://allberto-backend.cxfujw.easypanel.host/` → `http://allberto_backend_nginx:80/`, preservado. Aberto **Criar Domínio**, HTTPS marcado, destino HTTP/80 e caminhos `/`; preenchido **api.allber.to**, confirmado por AX fresca. O campo **Serviço Compose** estava vazio. Ao clicar **Select service**, o guard retornou **The user changed '/Applications/Google Chrome.app'**. A única reconciliação `getApp` mostrou outra janela/aba alheia à tarefa, sem ação deste operador. Interrompida a operação sem nova tentativa, sem tocar nessa página alheia.
+
+**API não criada**: o botão Criar não foi acionado; serviço nginx ainda não selecionado. O formulário pode permanecer aberto e deve ser reconciliado antes de retomar. Não duplicar os dois hosts web já criados. `completion_summary` enviado e estado parcial comunicado ao coordenador em `msg_2ffe398b671c`. D2/TLS dos hosts web será verificado externamente pelo coordenador; este operador não realizou bypass de certificado, APP_URL/env/redeploy ou console. CUA/foco/clipboard parados até coordenação de retomada.

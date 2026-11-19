@@ -4,6 +4,8 @@ Data: 19/11/2026. Decisão técnica: Fable 5.2 (CTO). Base: `main` em `d8a873829
 
 Nota de execução do coordenador: domínio adquirido e conta StayCloud foram posteriormente confirmados pelo operador. O estado atual, registros efetivamente salvos e pendências estão em [operação ao vivo](handoffs/custom-domain-live.md) e [story 004](stories/004-custom-domain.md); a seção 1 abaixo preserva o estado no momento da decisão.
 
+Adendo do coordenador: o proprietário orientou cadastrar domínios em vez de redirecionamento. Essa decisão substitui a recomendação original para `www`: apex e `www` serão hosts do mesmo serviço web, sem redirect entre eles. D9 abaixo acompanha essa preferência; sessões por origem continuam independentes.
+
 **Decisão: o plano do coordenador está correto e pode seguir, na ordem da seção 5.** Acrescento quatro ajustes, na seção 3.
 
 Não usei navegador, VPS nem painel. Li a fonte e a documentação já consultadas e fiz consultas públicas de DNS, somente leitura.
@@ -42,10 +44,8 @@ Ao importar a zona, a Cloudflare tende a trazer o A do apex e o CNAME de `www` a
 
 Não sei se o encaminhamento de e-mail da Namecheap continua funcionando com nameservers de terceiros, mesmo com os MX copiados. Antes de trocar os NS, conferir na Namecheap se existe algum endereço de encaminhamento configurado. Se existir, parar e avisar: é o único ponto em que a troca pode interromper algo em uso.
 
-**2. `www` deve redirecionar para o apex, não servir o aplicativo.**
-O frontend guarda a sessão no navegador por origem. Servir o mesmo aplicativo em `allber.to` e em `www.allber.to` cria duas sessões independentes: quem entra por um endereço aparece deslogado no outro. Criar o domínio `www` no serviço `web` e redirecioná-lo para `https://allber.to`.
-
-A documentação do EasyPanel descreve regras de redirecionamento por serviço, mas **essa capacidade ainda não foi observada nesta instalação**. Se a interface oferecer, usar, testando como temporário antes de marcar permanente, porque o navegador guarda redirecionamento permanente. Se não oferecer, a alternativa mínima é uma regra no nginx do `web` (`deploy/easypanel/frontend.conf`): um bloco de servidor para `www.allber.to` que devolve redirecionamento para o apex. Enquanto nenhuma das duas estiver feita, deixar `www` sem domínio no painel é melhor do que servir em duplicidade.
+**2. `www` como host adicional, por orientação posterior do proprietário.**
+O frontend guarda a sessão no navegador por origem. A recomendação inicial do CTO foi redirecionar `www` ao apex, mas o proprietário escolheu cadastrar os domínios sem redirecionamento. Criar `allber.to` e `www.allber.to` no serviço web, ambos com HTTPS. Alternar entre esses hosts pode exigir login separado; o backend e os dados são os mesmos. Nenhuma regra adicional no nginx ou em Redirecionamentos do EasyPanel é necessária.
 
 **3. Proxy da Cloudflare desligado, e assim deve ficar nesta fase.**
 "Somente DNS" nos três registros. É uma escolha nossa, não uma impossibilidade: é possível emitir certificado com o proxy ligado. Escolho assim porque simplifica a emissão e o diagnóstico, já que o painel valida o domínio recebendo a requisição direto na VPS, e porque evita acrescentar uma camada de proxy que mudaria o modo de TLS e o endereço que o backend vê como cliente. Ligar o proxy depois é outra decisão, com ajuste de `TRUSTED_PROXIES`.
@@ -70,7 +70,7 @@ Sem curinga. Sem AAAA: a VPS não foi verificada em IPv6, e um AAAA errado quebr
 | Serviço | Domínio novo | Destino |
 | --- | --- | --- |
 | `web` | `allber.to` | porta 80, HTTPS |
-| `web` | `www.allber.to` | porta 80, HTTPS, com redirecionamento para o apex |
+| `web` | `www.allber.to` | porta 80, HTTPS, host adicional sem redirect para o apex |
 | `backend` | `api.allber.to` | serviço interno `nginx`, porta 80, HTTPS |
 
 Os domínios `*.cxfujw.easypanel.host` continuam.
@@ -107,7 +107,7 @@ Cada etapa só começa quando a anterior tem a evidência indicada.
 7. **Adicionar os três domínios no EasyPanel.** Evidência: os três respondem em HTTPS com certificado válido. Neste ponto `allber.to` já mostra o aplicativo, ainda com o frontend atual.
 8. **Backend:** trocar `APP_URL` e redeployar. Verificar D3–D5.
 9. **Frontend:** pacote, release, PR, deploy do `web`. Verificar D6–D8.
-10. **Regra de redirecionamento de `www`**, se ainda não estiver feita. Verificar D9.
+10. **Host adicional `www`**, sem redirect entre hosts conforme o proprietário. Verificar D9.
 
 ## 6. Critérios de aceite
 
@@ -121,7 +121,7 @@ Cada etapa só começa quando a anterior tem a evidência indicada.
 | D6 | `https://allber.to/version.json` traz a revisão do novo pacote; o JavaScript servido contém `https://api.allber.to` e tem o hash do pacote verificado | respostas e hash |
 | D7 | Verificador de bundle aprovado com a nova origem; hash da release pública igual ao do `Dockerfile` | saída do verificador e cálculo do hash |
 | D8 | Login em `https://allber.to`, Painel carregado, sem erro de CORS nem conteúdo misto | status das chamadas, sem corpos |
-| D9 | `https://www.allber.to/qualquer` redireciona para `https://allber.to/…` | status e destino |
+| D9 | `https://www.allber.to/` e rota profunda servem o mesmo frontend, sem redirect para outro host | status, versão e HTML iguais ao apex |
 | D10 | Os hosts temporários continuam respondendo | uma requisição a cada |
 | D11 | Configuração do backend intacta além de `APP_URL`: Sentry vazio, autoatualização desligada, e-mail em log | o mesmo comando de três valores usado antes |
 

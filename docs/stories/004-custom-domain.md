@@ -7,7 +7,7 @@
 - Painel Allberto no domínio principal; API e portal em `api.allber.to`.
 - Zona Cloudflare no plano gratuito, com nameservers atribuídos à zona e delegação na Namecheap.
 - Preservar registros de e-mail e configurações alheias; trocar somente o destino web necessário.
-- Adicionar hosts HTTPS aos serviços existentes, redirecionar `www` ao domínio principal e manter os hosts temporários disponíveis durante a migração.
+- Adicionar hosts HTTPS aos serviços existentes, com `www` como host adicional do painel conforme a preferência posterior do proprietário, e manter os hosts temporários disponíveis durante a migração.
 - Atualizar `APP_URL` do backend e recompilar o frontend fora da VPS com a nova origem da API, após confirmar DNS e certificados.
 - Preservar APP_KEY, credenciais, banco, volumes, versão do backend e transporte de e-mail em log.
 
@@ -32,7 +32,7 @@ Essa consulta não comprova propriedade, inventário completo da zona nem funcio
 1. Confirmar domínio comprado, conta Cloudflare StayCloud e registros existentes.
 2. Criar/reutilizar a zona gratuita e configurar apex/API para `192.102.140.18`, com `www` como CNAME do domínio principal e DNS only para emissão direta dos certificados pelo EasyPanel. Conferir se há encaminhamento de e-mail em uso antes de mudar a delegação; preservar MX e SPF não comprova que o serviço continuará funcionando.
 3. Salvar na Namecheap os nameservers exatos atribuídos pela Cloudflare; observar DNSSEC antes de alterar delegação.
-4. Após a resolução pública apontar para a VPS, adicionar domínios HTTPS no EasyPanel e redirecionamento de `www` ao domínio principal. Conferir TLS antes de migrar a origem usada pelo app.
+4. Após a resolução pública apontar para a VPS, adicionar domínios HTTPS no EasyPanel, com apex e `www` no serviço web e API no nginx do backend. Conferir TLS antes de migrar a origem usada pelo app.
 5. Atualizar backend preservando segredos e publicar novo pacote frontend com origem da API confirmada; checks, revisão e deploy manual.
 6. Conferir autenticação, saúde, versão, links HTTPS e permanência dos dados; documentar o estado final e a reversão para hosts temporários.
 
@@ -75,3 +75,17 @@ A zona Cloudflare terminou com nove registros: A apex/API para `192.102.140.18`,
 O coordenador consultou os autoritativos da Cloudflare e confirmou os destinos A/CNAME e os cinco MX/SPF esperados. A consulta recursiva pública ainda devolveu os NS da Namecheap; isso não foi tratado como delegação concluída.
 
 Na Namecheap, o operador abriu Custom DNS, mas o controle nativo expirou durante o primeiro preenchimento e novamente na recuperação. **Save não foi acionado por ele.** O coordenador solicitou ao proprietário preencher os dois NS acima e salvar, sem pedir senha ou nova autorização de configuração. Nenhuma mudança EasyPanel/APP_URL/deploy ocorreu nessa etapa. O estado incerto do primeiro campo será reconciliado por observação/confirmacão; não repetir a criação da zona.
+
+O proprietário confirmou ter salvo os dois nameservers. Na verificação imediatamente posterior (19/11/2026, cerca de 17:54 UTC), o autoritativo `.to` `ns01.trs-dns.com` ainda devolvia os NS da Namecheap; os resolvedores 1.1.1.1/8.8.8.8 também mostravam a delegação antiga. Isso foi registrado como atualização ainda não observada, sem atribuir falha ao Save ou somente a cache. O operador recebeu instrução para confirmar os valores salvos por leitura e inspecionar o redirect do EasyPanel, sem repetir Save ou emitir certificados antes de D1.
+
+## Delegação confirmada e preferência de hosts
+
+Em 19/11/2026 às 17:56–17:57 UTC, o autoritativo `.to` e os resolvedores 1.1.1.1/8.8.8.8 passaram a anunciar os nameservers Cloudflare. A leitura pública confirmou A apex/API `192.102.140.18`, CNAME www `allber.to`, cinco MX e SPF preservados: **D1 aprovado**, evidência `/tmp/allberto-custom-domain-release/dns-check.json`. O operador confirmou também que os dois NS persistem na Namecheap após recarga.
+
+O proprietário orientou diretamente o operador a cadastrar domínios, sem redirecionamento. Essa preferência substitui a recomendação anterior para www; a arquitetura e D9 foram atualizados pelo coordenador. Apex e www servirão o mesmo frontend por HTTPS, com sessões independentes por origem. Nenhuma mudança em `frontend.conf` ou regra de redirect será feita. Após D1, o operador recebeu autorização para cadastrar os três hosts HTTPS, preservando os temporários e sem alterar APP_URL/deploy até a verificação dos certificados.
+
+## HTTPS do painel
+
+O operador cadastrou `allber.to` e `www.allber.to` no web, destino HTTP porta 80, mantendo o host temporário e sem redirect. Às 18:00 UTC, o coordenador confirmou 200 e certificado válido nos dois hosts usando resolução explícita para `192.102.140.18`, mantendo validação normal de hostname/TLS (`ssl_verify_result=0`). Ambos ainda servem a versão anterior `f5cb28e`, esperado antes do deploy. A tentativa com resolução local padrão encontrou timeout/reset, compatível com caminho/cache DNS local ainda divergente; não foi alegada disponibilidade em todos os caches.
+
+A criação de `api.allber.to` foi interrompida antes de selecionar o serviço Compose e clicar Criar. A API ainda apresentou o certificado padrão não confiável; nenhuma credencial foi enviada para essa origem. O coordenador aguarda retomar o formulário em controle exclusivo ou confirmação de conclusão pelo proprietário. D2 permanece parcial; APP_URL e versão publicada ainda não foram trocados.
