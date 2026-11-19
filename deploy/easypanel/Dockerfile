@@ -1,6 +1,6 @@
 FROM nginx:alpine
-ARG DIST_URL=https://github.com/allber-to/web/releases/download/web-d8a873829cbb-1/allberto-web-d8a873829cbb.tar.gz
-ARG DIST_SHA256=7a893ca6a434f7f4344ba816b619009ada06b6519b9abce288bfac21033812f6
+ARG DIST_URL=https://github.com/allber-to/web/releases/download/web-a0fe5f2edd3b-1/allberto-web-a0fe5f2edd3b.tar.gz
+ARG DIST_SHA256=1b10a59e1bd7d541b1ba0a4841be4a95baf1f6ec0353d816ba17cd0eedc22316
 RUN test -n "$DIST_URL" && test -n "$DIST_SHA256" \
     && wget -q -O /tmp/allberto-web.tar.gz "$DIST_URL" \
     && printf '%s  %s\n' "$DIST_SHA256" /tmp/allberto-web.tar.gz | sha256sum -c - \
