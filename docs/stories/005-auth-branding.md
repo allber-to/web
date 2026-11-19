@@ -1,6 +1,6 @@
 # 005 — Marca Allberto na autenticação
 
-**Estado:** implementação e revisão aprovadas; pacote publicado, deploy pendente. O proprietário enviou uma captura de `painel.allber.to/login` e pediu substituir o logo Invoice Ninja pelo logo Allberto. A página real e o certificado foram observados no navegador; o login ainda não foi concluído por interrupção do controle nativo.
+**Estado:** concluída e aceita pelo CTO no escopo da marca. Nova versão publicada e confirmada visualmente em `painel.allber.to/login`; checagem externa aprovada. O login real da story 004 permanece pendente por interrupção do controle nativo e não faz parte do aceite desta troca visual.
 
 ## Escopo
 
@@ -27,3 +27,16 @@ Fonte fixada em `a0fe5f2edd3bc5a4d3f1873346efe4d9e2cf5f02`. Build isolado do `gi
 
 
 O build leve local com os defaults novos passou; `nginx -t` passou e a revisão dentro da imagem corresponde ao pacote. Ambos os comandos de verificação rodaram com rede desabilitada, em containers temporários removidos ao concluir. Evidência `lightweight-check.json`; a receita e o nginx.conf não foram alterados.
+
+
+## Publicação
+
+PR [#9](https://github.com/allber-to/web/pull/9) mesclada em `9441e4163dba0c4c8c0f36ce9af8c33c58150eb2` após revisão e CI verde no head exato `c630a71266ede1266edc25ff210ff647f0508fb4`. Hooks e CI passaram lint, TypeScript, build e suíte existente. O operador acionou uma única implantação do web: histórico PR9, conclusão em 6 segundos, sem mudança de fonte/ambiente/DNS/backend.
+
+Checagem externa pós-deploy aprovada em sete caminhos por DNS/TLS normal: versão `a0fe5f2edd3bc5a4d3f1873346efe4d9e2cf5f02`, HTML do login, healthz, JavaScript principal, CSS da fonte, CSS da aplicação e chunk do Header. Arquivos idênticos aos locais; Header servido contém a classe Allberto e não o alt antigo. Evidência `/tmp/allberto-auth-branding-release/live-check.json`. O script temporário inicialmente só aceitava caminhos /react e foi ajustado para incluir o CSS local /rsms/inter.css observado no HTML; a primeira tentativa parou antes de qualquer requisição. Essa correção foi só no verificador temporário, não na aplicação.
+
+O operador recebeu o resultado e concluiu a confirmação visual após recarga completa: palavra allberto preta, símbolo violeta, sem borda permanente e com formulário preservado. O Chrome confirmou conexão segura. O [handoff ao vivo](../handoffs/auth-branding-live.md) distingue observação direta, checks recebidos e limitações.
+
+Ao tentar preencher o e-mail, o controle nativo foi interrompido; uma leitura de reconciliação mostrou o seletor de perfis do Chrome. Nenhuma senha ou submit de login foi executado. O operador encerrou o controle e liberou o Chrome, sem nova implantação nem alteração de dados. Não foi determinada a causa da mudança de janela.
+
+O [CTO aceitou a story como entregue](../reviews/fable-auth-branding.md), após ler as provas e conferir os hashes locais contra os servidos. Tema escuro/foco ao vivo, inspeção completa de containers e login real não foram repetidos; a matriz local continua sendo a prova dos temas e do foco. A autenticação e a navegação autenticada continuam pendentes na story 004, sem impedir o aceite da substituição da marca solicitada.
