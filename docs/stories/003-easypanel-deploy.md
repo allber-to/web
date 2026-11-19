@@ -1,6 +1,6 @@
 # 003 — Publicação no EasyPanel da StayCloud
 
-**Estado:** PRs #1 e #2 mescladas, inventário concluído e release do frontend publicada com checksum conferido. Backend em configuração pelo operador; a aplicação ainda não teve seu runtime validado.
+**Estado:** PRs #1–#3 mescladas e os dois serviços publicados em HTTPS. Saúde, versão, rotas, login pela API e CORS aprovados; operador valida login pela interface, rascunho/PDF e depois persistência.
 **Coordenação:** SINAPSE. **CTO:** Fable 5.2. **Implementação:** Astra. **Operação do painel:** chat com CUA funcional, sob coordenação deste projeto.
 
 ## Autorização e escopo
@@ -39,7 +39,7 @@ Fable entregou [arquitetura EasyPanel](../architecture-easypanel.md), com GO par
 - [x] Preparar e verificar artefatos de deploy localmente.
 - [x] Acessar sessão autenticada do painel e conferir recursos, arquitetura, versão/plano, serviços existentes, hosts e administrador.
 - [x] Revisar artefatos e publicar no GitHub.
-- [ ] Configurar serviços e segredos novos no projeto `allberto`.
+- [x] Configurar serviços e segredos novos no projeto `allberto`.
 - [ ] Implantar e validar E1–E10 na VPS, incluindo bloqueio de signup adicional, PDF e persistência.
 - [ ] Registrar URLs, revisão final, backup e limites.
 
@@ -74,3 +74,49 @@ O inventário mínimo confirmou amd64, 3.277 MiB de memória disponível, nenhum
 O pacote frontend local foi gerado de um `git archive` do commit acima, com 15.276.656 bytes e SHA-256 `5f9d3b717d30706d82c8d4ba66e7cf8ebcb49fa0ef695c1630dce4b94e351f02`. Build e verificação sobre o pacote extraído passaram; a origem real HTTPS está embutida, sem o endereço de prova anterior. O novo Dockerfile leve também recusou checksum incorreto e aceitou a fixture íntegra, com `nginx -t` aprovado. A release pública, os defaults versionados e o deploy web ainda dependem da primeira validação do backend.
 
 Após a revisão final do CTO, o coordenador publicou a [release de pré-lançamento `web-52db1b5423ea-1`](https://github.com/allber-to/web/releases/tag/web-52db1b5423ea-1), vinculada ao commit de origem do pacote. Uma nova transferência anônima por HTTPS confirmou o mesmo tamanho e SHA-256 (W1). A release registra que `/version.json` identifica o commit de compilação `52db1b5`, que difere do commit de merge. Astra insere os defaults reais no Dockerfile e verifica o build leve com o pacote público; o deploy web continua condicionado à validação inicial do backend.
+
+## Runtime publicado — verificações do coordenador
+
+PR #3 mesclada com CI aprovado, merge `aa9b976c0014ce6a445ddc53286488a1f4c95067`. O operador implantou backend e web manualmente, sem webhook configurado. Confirmou app/MySQL/Redis healthy, nginx ativo, nenhuma porta publicada, `RestartCount=0` e `OOMKilled=false`. App, banco e Redis estão exclusivamente na rede interna; só nginx alcança a rede do proxy. Consumo inicial dos quatro containers: aproximadamente 1,13 GiB, antes do teste de PDF.
+
+Consultas externas do coordenador, com validação TLS normal:
+
+| Verificação | Resultado |
+| --- | --- |
+| Raiz HTTPS da API | 200, sem redirecionamento, versão 5.13.49 |
+| Raiz HTTP da API | 301 para a origem HTTPS |
+| `/health` | 200, `status=ok` |
+| `/setup` | 302 para a raiz HTTPS, sem assistente |
+| Signup vazio, sem credenciais nem Accept | 403 |
+| Signup vazio com Accept JSON | 401; `Handler.php:231–232` da versão 5.13.49 traduz AuthorizationException para 401 nesse caso |
+| Precheck, login e refresh da conta administrativa | 200, versão 5.13.49, CORS permitido para o frontend |
+| Web `/healthz` | 200, `ok` |
+| Web `/version.json` | 200, no-store, revisão `52db1b5423eafac06d43c38b710f23b6a5fdc6c4` |
+| Web `/`, `/clients`, `/invoices` | 200 HTML, no-store |
+
+A conta tinha zero clientes e zero faturas antes da configuração inicial. Com essa condição verificada, o coordenador definiu somente nome Allberto, país Brasil, moeda BRL e idioma pt_BR na companhia/usuário, confirmando os valores por refresh. Nenhum dado fiscal, endereço, gateway ou registro financeiro foi inventado. O operador validará um cliente fictício e uma fatura de rascunho pela interface; nenhum envio/cobrança é autorizado por esse teste.
+
+Evidências sanitizadas em `/tmp/allberto-easypanel-release/`: `initial-runtime-checks.json`, `api-login-check.json`, `bootstrap-locale-check.json` e `web-runtime-checks.json`. Credenciais permaneceram fora dos relatórios e do Git. PDF, portal, redeploy, dump e restauração ainda não foram validados nesta etapa.
+
+## E8 — incidente de entrada numérica e validação do PDF
+
+O login pela interface exibiu o Painel Allberto em português. O operador criou somente o cliente fictício `VALIDAÇÃO Allberto - teste` e o rascunho nº 0001, sem envio, pagamento ou cobrança. Ao preencher preço 10 e avançar imediatamente, o total persistiu como zero. A leitura pela API confirmou descrição correta, quantidade 1 e custo 0. O CTO identificou a causa no componente compartilhado: `changeOverride` só entregava o valor depois de 500 ms, sem entrega na saída do foco; desmontar a etapa antes disso descartava o preço. É defeito herdado do upstream e também atinge outros campos financeiros. [Parecer e requisitos](../reviews/fable-number-input.md).
+
+Astra reproduziu a falha em teste e prepara a correção com entrega ao sair do foco, cancelamento da pendência e preservação do debounce durante digitação, sem gravar valores no desmonte. A versão publicada ainda precisa receber esse ajuste antes do aceite final.
+
+O operador corrigiu **o mesmo rascunho**, conferindo R$ 10,00 na tela antes de salvar. A API confirmou custo 10, quantidade 1 e total 10; status continuou rascunho. Portal específico e PDF abriram em HTTPS e exibiram item/valor corretos, sem envio. O PDF é válido, uma página, mas apresenta imagem de logotipo quebrada e outro marcador de imagem vazio; a empresa não possui logo configurado. Diagnóstico separado em andamento, sem abrir saída de rede do app. A falha de download de dados de extração de texto informada pelo visualizador do Chrome não impediu que o Poppler extraísse o texto localmente.
+
+Medição pontual após PDF: app 1.019 MiB, MySQL 538,7 MiB, Redis 8,816 MiB, nginx 8,906 MiB e web 3,855 MiB. Os cinco serviços continuaram ativos, sem OOM e sem reinícios. Não é medição do pico de geração. Persistência por redeploy e backup continuam pendentes.
+
+## Correções e cópia anterior ao redeploy
+
+O CTO confirmou que o PDF tenta buscar duas URLs: o logo vazio da empresa vira uma imagem em branco no próprio host da API, e a marca obrigatória do Invoice Ninja vem de `invoicing.co`. Ambas foram impedidas pela rede sem saída. A seção 16 da arquitetura aprova uma rede própria `egress` para o app, sem portas e sem rede do proxy; banco e Redis continuam internos. É saída normal para internet, não uma lista de destinos permitidos. A configuração deve fixar `SENTRY_LARAVEL_DSN` vazio e `DISABLE_AUTO_UPDATE=true`, preservando versão e desativando telemetria de erros. Não haverá licença paga, remoção de atribuição ou patch PHP.
+
+O operador executou uma vez o procedimento manual de backup revisado pelo CTO, antes de qualquer redeploy, com exit 0. Pasta persistente `storage/app/backups/20261119T163258Z` no volume app_storage, fora de public:
+
+| Arquivo | Tamanho | SHA-256 |
+| --- | --- | --- |
+| `ninja.sql` | 504.900 bytes | `dad78b785949c8039a67aa1a0d0bd3b26b21a4b3371a428781e314acbe1db363` |
+| `storage.tar.gz` | 382.466 bytes | `394876eea7970f6a5fea59943355e038d9ef822912b937cfc85cc7f84891dbb5` |
+
+Checksums conferidos e tar validado sem imprimir conteúdo. Staging removido somente após sucesso. Essa cópia permanece **na mesma VPS**; não comprova restauração nem protege contra perda do servidor. As permissões iniciais 0700/0600 serão normalizadas para www-data/0755/0644 pelo init da imagem após redeploy, ficando legível pelo PHP, embora fora da raiz pública. O cliente e o rascunho de teste foram preservados para E9.

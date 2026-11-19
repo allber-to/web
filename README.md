@@ -2,7 +2,7 @@
 
 Fork: [allber-to/web](https://github.com/allber-to/web). Upstream: [invoiceninja/web](https://github.com/invoiceninja/web).
 
-Este fork aplica a identidade e o frontend Allberto sobre os fluxos e contratos do Invoice Ninja. O frontend e a integração com backend real local foram validados e aprovados pelo CTO Fable 5.2. Referência visual, alterações e limites estão documentados. A implantação na VPS StayCloud permanece uma etapa posterior.
+Este fork aplica a identidade e o frontend Allberto sobre os fluxos e contratos do Invoice Ninja. O frontend e a integração com backend real local foram validados e aprovados pelo CTO Fable 5.2. A implantação na VPS StayCloud já responde em HTTPS; a [story de publicação](docs/stories/003-easypanel-deploy.md) registra o aceite funcional em andamento, correções e limites.
 
 ## Desenvolvimento local
 
@@ -43,7 +43,7 @@ Execute novamente `up -d` para retomar. Pare o ambiente quando não estiver em u
 
 ## Documentação do projeto
 
-A publicação provisória no EasyPanel está em preparação, com frontend e API em portas separadas no IP. Artefatos: `deploy/easypanel/`. A [arquitetura](docs/architecture-easypanel.md), o [handoff operacional](docs/handoffs/astra-easypanel.md) e a [story 003](docs/stories/003-easypanel-deploy.md) registram configurações, verificações e o que ainda depende da VPS. Não reutilize credenciais ou dados do backend local nesse ambiente.
+O [Allberto no EasyPanel](https://allberto-web.cxfujw.easypanel.host) usa dois domínios HTTPS, com [API separada](https://allberto-backend.cxfujw.easypanel.host) e nenhuma porta do projeto publicada diretamente. O frontend é pré-compilado fora da VPS e instalado por pacote com SHA-256. Artefatos: `deploy/easypanel/`. A [arquitetura](docs/architecture-easypanel.md), o [handoff operacional](docs/handoffs/astra-easypanel.md) e a [story 003](docs/stories/003-easypanel-deploy.md) registram configuração, verificações e limites. Não reutilize credenciais ou dados do backend local nesse ambiente.
 
 - [Briefing e critérios de aceite](docs/project-brief.md)
 - [Plano, progresso e verificações](docs/stories/001-github-frontend.md)
@@ -53,7 +53,7 @@ A publicação provisória no EasyPanel está em preparação, com frontend e AP
 - [Handoff do design](docs/front-end-spec.md)
 - [Referência e licenças das fontes](design/README.md)
 - [Regras de trabalho e acesso ao WHMCS](AGENTS.md)
-- [Preparação para implantação na StayCloud](docs/staycloud.md)
+- [Instalação e operação na StayCloud](docs/staycloud.md)
 
 A licença e os avisos de copyright do upstream permanecem em [LICENSE](LICENSE) e nos arquivos de origem.
 

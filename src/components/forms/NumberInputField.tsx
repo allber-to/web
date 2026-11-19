@@ -9,7 +9,7 @@
  */
 import classNames from 'classnames';
 import currency from 'currency.js';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 import { useDebounce } from 'react-use';
 import { useColorScheme } from '$app/common/colors';
@@ -49,6 +49,8 @@ export function NumberInputField(props: Props) {
         ? parseFloat(String(props.value))
         : undefined
   );
+
+  const lastDeliveredValue = useRef(String(currentValue ?? 0));
 
   const getDecimalSeparator = () => {
     if (props.precision === 0) {
@@ -100,12 +102,15 @@ export function NumberInputField(props: Props) {
     return company?.use_comma_as_decimal_place ? '.' : ',';
   };
 
-  useDebounce(
+  const [, cancelDebounce] = useDebounce(
     () => {
       if (props.onValueChange && props.changeOverride) {
-        props.onValueChange(
-          typeof currentValue === 'number' ? String(currentValue) : '0'
-        );
+        const value = String(currentValue ?? 0);
+
+        if (value !== lastDeliveredValue.current) {
+          lastDeliveredValue.current = value;
+          props.onValueChange(value);
+        }
       }
     },
     500,
@@ -113,7 +118,9 @@ export function NumberInputField(props: Props) {
   );
 
   useEffect(() => {
-    setCurrentValue(props.value ? parseFloat(String(props.value)) : undefined);
+    const value = props.value ? parseFloat(String(props.value)) : undefined;
+    lastDeliveredValue.current = String(value ?? 0);
+    setCurrentValue(value);
   }, [props.value]);
 
   if (import.meta.env.VITE_RETURN_NUMBER_FIELD === 'true') {
@@ -187,24 +194,33 @@ export function NumberInputField(props: Props) {
             }
           }}
           onBlur={(event) => {
-            if (props.onValueChange && !props.changeOverride) {
+            if (props.onValueChange) {
+              cancelDebounce();
               const enteredValue = event.target.value;
 
-              const formattedValue = enteredValue
-                ? String(
-                    currency(enteredValue, {
-                      separator: getThousandSeparator(),
-                      decimal: getDecimalSeparator(),
-                      symbol: '',
-                      precision:
-                        getNumberPrecision(enteredValue) === undefined
-                          ? 0
-                          : getNumberPrecision(enteredValue),
-                    }).value
-                  )
-                : '0';
+              const formattedValue = props.changeOverride
+                ? String(currentValue ?? 0)
+                : enteredValue
+                  ? String(
+                      currency(enteredValue, {
+                        separator: getThousandSeparator(),
+                        decimal: getDecimalSeparator(),
+                        symbol: '',
+                        precision:
+                          getNumberPrecision(enteredValue) === undefined
+                            ? 0
+                            : getNumberPrecision(enteredValue),
+                      }).value
+                    )
+                  : '0';
 
-              props.onValueChange(formattedValue);
+              if (
+                !props.changeOverride ||
+                formattedValue !== lastDeliveredValue.current
+              ) {
+                lastDeliveredValue.current = formattedValue;
+                props.onValueChange(formattedValue);
+              }
             }
           }}
           thousandSeparator={getThousandSeparator()}

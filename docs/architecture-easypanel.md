@@ -455,3 +455,91 @@ Trocar o host da API (por exemplo, na passagem para `allber.to`) exige repetir o
 - O build da VPS depende de alcançar `github.com` e o Docker Hub. Não foi testado.
 - Não observado: arquitetura da VPS, forma de entrega de variáveis ao build, e se o plano com licença inativa permite serviço App com fonte GitHub e builder Dockerfile.
 - Publicar a release é um ato público no repositório do projeto. Faz parte do deploy já autorizado; quem publica é o coordenador.
+
+## 16. Adendo — saída de rede para o `app`
+
+Data: 19/11/2026. Motivo: o PDF oficial traz a marca do Invoice Ninja por uma URL externa (`docs/reviews/fable-pdf-runtime.md`). Sem saída, toda fatura sai com imagem quebrada. A marca deve ser preservada e não haverá licença white-label.
+
+### 16.1 Decisão
+
+**Dar saída de rede ao serviço `app`, e só a ele.** O isolamento total foi decisão minha para a fase local e de homologação, não exigência do proprietário. Mantê-lo agora obrigaria a esconder a atribuição, comprar licença ou alterar o backend, e nenhuma dessas é aceitável.
+
+Avaliei embutir a marca sem rede por meio suportado: não existe. A URL é fixa no código (`HtmlEngine.php:816`) e o elemento só some com a licença.
+
+O que isto é e o que não é:
+- **É saída normal para a internet**, como numa instalação padrão do Invoice Ninja.
+- **Não é lista de destinos permitidos.** Não há filtro por host. Não afirmar isso em nenhum documento.
+- MySQL e Redis continuam sem saída e sem porta. O `nginx` não muda. Nenhuma porta é publicada.
+
+### 16.2 Diff mínimo no Compose (Astra)
+
+```yaml
+services:
+  app:
+    networks: [backend, egress]     # antes: [backend]
+    environment:
+      SENTRY_LARAVEL_DSN: ""        # novo, fixo
+      DISABLE_AUTO_UPDATE: "true"   # novo, fixo
+networks:
+  egress: {}                        # nova; não interna; só o app
+```
+
+- A rede `egress` é própria: não é a `edge` do `nginx` nem a rede do proxy do painel.
+- `backend` continua `internal: true`.
+- `MAIL_MAILER: log` e a ausência de gateways permanecem.
+- Atualizar `env.example`, o handoff e o script de verificação do Compose: `app` em `backend` e `egress`; `mysql` e `redis` só em `backend`; zero portas; as duas variáveis novas com o valor exato.
+
+### 16.3 Por que as duas variáveis — efeitos externos que a saída destrava
+
+Li na fonte 5.13.49 o script de entrada, as rotinas agendadas e o tratamento de erros. Com saída liberada:
+
+| Efeito | Fonte | Tratamento |
+| --- | --- | --- |
+| **Envio de erros ao Sentry do upstream.** O DSN padrão aponta para `sentry2.invoicing.co`, e em instalação própria toda exceção reportável é enviada. O campo `report_errors` da conta só muda a identificação do usuário, não impede o envio | `config/ninja.php:55`, `Exceptions/Handler.php` | **`SENTRY_LARAVEL_DSN: ""`** desliga. Sem isso, mensagens de erro da aplicação, que podem conter dados, iriam para terceiros |
+| **Autoatualização pelo painel.** Um administrador pode acionar o download de uma versão nova, que sobrescreve o código no container e roda migrações. O banco ficaria num esquema mais novo que a imagem fixada por digest | `SelfUpdateController.php:53` | **`DISABLE_AUTO_UPDATE: "true"`** faz a rota responder 403 |
+| Consulta diária da versão mais recente (`pdf.invoicing.co/api/version`) e gravação em `latest_version` | `Jobs/Util/VersionCheck.php`, agendador | Aceito. É um GET sem dados da conta. Efeito visível: o frontend passa a mostrar o aviso de atualização disponível. O botão de atualizar responderá 403 |
+| Atualização de câmbio | `Jobs/Util/UpdateExchangeRates.php` | Não ocorre: sai cedo sem a chave `OPENEXCHANGE_APP_ID`, que não é definida |
+| E-mail | — | Não ocorre: transporte `log` |
+| Gateways, bancos, webhooks, e-invoice | rotinas agendadas | Não ocorrem sem configuração. Se alguém cadastrar um webhook ou gateway pela interface, passa a funcionar de verdade |
+| Script de entrada (migrações, seed, criação de conta) | `init.sh` | Não faz chamada externa |
+
+Não fiz varredura de todas as chamadas HTTP do código. Conferi o agendador, o script de entrada e o tratamento de erros. A tabela é o que encontrei, não uma garantia de que não há outras.
+
+### 16.4 Riscos reais
+
+1. **Deixa de valer a garantia "nada sai da máquina".** O que impede e-mail real passa a ser só `MAIL_MAILER=log`. Se alguém trocar o transporte nas configurações da empresa pela interface, e-mails saem. É o comportamento normal do produto; registro para que ninguém conte com o isolamento antigo.
+2. **O Chromium busca qualquer imagem referenciada no conteúdo da fatura.** Quem edita notas ou modelos pode fazer o servidor requisitar uma URL arbitrária, inclusive endereços da rede interna. Só usuários autenticados editam esse conteúdo. É característica do upstream, agora ativa.
+3. **A saída é irrestrita.** Um filtro por destino exigiria firewall no host ou um proxy, que é justamente o que esta decisão evita. Se for requisito no futuro, é outro projeto.
+4. **O logotipo do topo continua dependendo de configuração.** Com saída, o `app` tentará buscar a imagem em branco no próprio endereço público. Se o servidor alcançar a si mesmo por esse nome, o texto alternativo some; se não alcançar, continua. Não testei esse caminho. **Cadastrar um logotipo da empresa continua sendo a solução**, porque dispensa a rede.
+
+### 16.5 Prova local
+
+Rodei um container descartável da imagem oficial, pelo mesmo digest, na rede padrão do Docker e sem relação com o projeto local: uma requisição HTTPS a `https://invoicing.co/images/new_logo.png` respondeu `200`, `image/png`, 9.391 bytes. A imagem tem certificados e resolução de nomes suficientes para buscar a marca. O ambiente local da story 002 não foi tocado.
+
+Isso prova o alcance a partir da imagem, não o PDF renderizado com a marca.
+
+### 16.6 Validação após o deploy
+
+| # | Critério | Evidência |
+| --- | --- | --- |
+| N1 | `app` nas redes `backend` e `egress`; `mysql` e `redis` só em `backend`; nenhuma porta publicada no projeto | inspeção dos containers |
+| N2 | De dentro do `app`, uma requisição HTTPS externa funciona; de dentro do `mysql`, não | um teste em cada |
+| N3 | PDF de uma fatura de teste mostra a marca do Invoice Ninja no rodapé, sem ícone quebrado | imagem renderizada do PDF |
+| N4 | Com logotipo cadastrado, o topo mostra o logotipo | a mesma imagem |
+| N5 | Configuração efetiva: DSN do Sentry vazio e autoatualização desligada | leitura dos dois valores dentro do `app`, sem imprimir o restante do ambiente |
+| N6 | A rota de autoatualização responde 403 | status, sem enviar senha |
+| N7 | Nenhum e-mail saiu: o envio de teste continua aparecendo só no log | trecho do log |
+| N8 | H1–H6 e E7 continuam passando | repetição das verificações |
+| N9 | Memória após gerar PDF dentro do observado antes, sem reinício | leitura dos containers |
+
+Falha em N1, N5 ou N7 é bloqueio.
+
+### 16.7 O que muda nas seções anteriores
+
+- Seções 2, 3.1 e 14.3: onde se lê que o `app` não tem saída, passa a valer esta seção.
+- Seção 6 e critério A7/E-equivalente: "sem envio real de e-mail" continua verdadeiro por configuração, não mais por rede.
+- O ambiente local da story 002 **não muda**: lá o isolamento total segue valendo e a imagem quebrada no PDF local é esperada.
+
+### 16.8 Ordem
+
+Esta mudança entra no mesmo redeploy do backend previsto para o E9, depois do backup local. A publicação final do frontend continua aguardando a correção do campo numérico.

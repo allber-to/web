@@ -217,3 +217,93 @@ Continua sem validação, até o deploy:
 - o consumo de memória com os quatro containers, sobretudo ao gerar PDF: sem swap, falta de memória derruba processo em vez de degradar;
 - login, PDF, persistência após redeploy e dump do banco (E6, E8, E9);
 - backup com restauração testada, que continua sendo condição para dados reais.
+
+## Suplemento — digests de MySQL e Redis e procedimento de backup E9 (19/11/2026)
+
+**Autorizados o próximo redeploy do backend com os digests fixados e a execução do backup local**, com uma correção de texto obrigatória e uma recomendação antes de dados reais. Revisei `deploy/easypanel/compose.yml` e a seção "Pins observados na VPS e procedimento E9" do handoff. Não executei nada na VPS.
+
+### Digests
+
+- `mysql:8@sha256:a81d0439…b0902` e `redis:alpine@sha256:7958cfbb…935c3`.
+- São os mesmos digests resolvidos no ambiente local arm64 da story 002 e agora observados na VPS amd64. Isso indica que são digests de índice, válidos nas duas arquiteturas, e que o redeploy não troca a imagem em execução.
+- A sintaxe com tag e digest é válida; validei o Compose com valores fictícios (`docker compose config -q`).
+- O nginx do backend continua com base por tag (`nginx:alpine` no build). Aceitável: não guarda dado.
+
+### Backup: o que está certo
+
+- O dump usa a senha que já existe dentro do container do MySQL, sem expô-la na linha de comando do host; `--single-transaction` e `--no-tablespaces` são adequados.
+- Não há encadeamento que esconda falha: o dump vai para arquivo, com `set -e` e verificação de arquivo não vazio.
+- O `tar` exclui a própria pasta de backups, então não inclui a si mesmo nem dumps anteriores.
+- Gera e confere `SHA256SUMS`; registra só caminho, tamanhos e hashes.
+- O texto já declara o limite essencial: é cópia na mesma VPS, não backup externo nem restauração testada.
+
+### Achados
+
+**1. Média — a afirmação de permissões restritas não sobrevive ao redeploy. Corrigir o texto antes de usar.**
+O handoff diz que os diretórios ficam `0700` e os arquivos `0600`. Isso vale só até o container `app` reiniciar. O script de entrada da imagem (`init.sh` oficial, que li na story 002) roda a cada subida `chown -R www-data:www-data` sobre `storage` e redefine arquivos para `644` e diretórios para `755`. Depois do redeploy, o dump do banco passa a ser legível pelo usuário do PHP.
+
+Não fica exposto pela web: o nginx serve `public/`, e de `storage` só `app/public` é ligado ali. Mas é um dump completo dentro do diretório de dados da aplicação, legível por ela.
+
+- Correção obrigatória agora: trocar a afirmação no handoff por essa realidade.
+- Recomendação antes de dados reais: guardar os backups num diretório do host, fora dos volumes dos containers e restrito ao root, em vez de dentro de `app_storage`. O arquivo de transferência em `/tmp` do host já passa por lá; basta um destino permanente no host e dispensar a cópia para o container.
+
+Para a homologação com dados fictícios, o procedimento como está é aceitável.
+
+**2. Baixa — o `tar` de `storage` inclui os logs da aplicação.** Entre eles os registros da rota de cadastro, que gravam cabeçalhos e corpo das tentativas. Mais um motivo para tratar o pacote como sensível e não deixá-lo legível pela aplicação.
+
+**3. Informativa — a verificação pós-redeploy pedida no handoff está correta** (reler os mesmos registros, saúde, ausência de conta nova, backup ainda presente). Acrescentar a conferência das permissões do diretório de backup depois do redeploy: é o que vai mostrar o achado 1 na prática.
+
+### Continua aberto
+
+Destino externo, retenção e **restauração testada** seguem como condição para dados reais. Este procedimento prova apenas que as cópias são geradas e íntegras.
+
+## Suplemento — saída de rede do `app`, seção 16 (19/11/2026)
+
+**Delta de Compose e `env.example` aceito. Publicação autorizada.** Revisei o diff contra `aa9b976c0014ce6a445ddc53286488a1f4c95067` e li a configuração efetiva com valores fictícios (`docker compose config --format json`), sem criar container nem repetir build.
+
+| Pedido na seção 16 | Configuração efetiva |
+| --- | --- |
+| `app` em `backend` e `egress` | `app: [backend, egress]` |
+| `mysql` e `redis` só em `backend` | `[backend]` nos dois |
+| `nginx` inalterado | `[backend, edge]` |
+| `backend` interna; `egress` não interna; nenhuma rede externa | `backend: internal`, `edge` e `egress` comuns, nenhuma externa |
+| Nenhuma porta publicada | nenhum serviço com `ports` |
+| `SENTRY_LARAVEL_DSN` vazio | `''` |
+| `DISABLE_AUTO_UPDATE` verdadeiro | `'true'` |
+| E-mail em log, HTTPS, proxy, ambiente | `MAIL_MAILER: log`, `REQUIRE_HTTPS: true`, `TRUSTED_PROXIES: *`, `NINJA_ENVIRONMENT: selfhost`, `APP_DEBUG: false` |
+| Imagens fixadas | backend, MySQL e Redis por digest |
+
+O `env.example` registra, corretamente, que a saída é irrestrita e que o e-mail é contido por configuração, não por rede. O registro do script de verificação do Astra mostra aprovação; não o reexecutei.
+
+### Backup E9
+
+O coordenador informa que o operador executou o backup uma vez, com saída zero, dump de 504.900 bytes e `storage` de 382.466 bytes, hashes conferidos. Não vi a evidência; registro como relatado. Vale o achado anterior: depois do redeploy o container `app` reinicia e o script de entrada reabre as permissões dessa pasta. Conferir as permissões do diretório de backup após o redeploy.
+
+### Operação após o redeploy — N5, N6 e N7
+
+**N5, configuração ativa.** No terminal do serviço `app`, como o usuário da aplicação, imprimindo só três valores:
+
+```sh
+runuser -u www-data -- php artisan tinker --execute='echo json_encode(["sentry_vazio"=>empty(config("sentry.dsn")),"autoupdate_off"=>(bool)config("ninja.disable_auto_update"),"mail"=>config("mail.default")]);'
+```
+
+Esperado: `{"sentry_vazio":true,"autoupdate_off":true,"mail":"log"}`. Rodar como `www-data` evita deixar arquivos de cache com dono root em `storage`.
+
+**N6, autoatualização. Atenção: a ordem importa.** A rota é `POST /api/v1/self-update` (`routes/api.php:435`). Ela passa pelo middleware `password_protected` antes do controlador, e logo depois de um login esse middleware deixa passar sem pedir senha. Se a variável não estiver ativa, **a chamada inicia uma atualização real**.
+
+- Só chamar depois de N5 mostrar `autoupdate_off: true`.
+- Chamar com o token do administrador, sem cabeçalho de senha e sem corpo.
+- `403` confirma o bloqueio. `412` significa que o middleware pediu senha: é inconclusivo, e não se deve reenviar com a senha.
+- Alternativa que recomendo: **dispensar a chamada e aceitar N5 como prova.** O controlador lê exatamente esse valor de configuração (`SelfUpdateController.php:53`).
+
+**N7, e-mail só em log.** Enviar a fatura de teste a um contato `@example.test`, com um assunto único, e contar as ocorrências sem imprimir o conteúdo:
+
+```sh
+runuser -u www-data -- grep -c 'ASSUNTO-UNICO-DE-TESTE' storage/logs/laravel.log
+```
+
+Esperado: 1 ou mais. Junto com `mail: log` no N5 e com o método de envio da empresa em "padrão" nas configurações de e-mail. Esse último ponto é o que importa daqui em diante: com a saída liberada, trocar o método de envio pela interface faz e-mails saírem de verdade.
+
+### Continua aberto
+
+N1 a N4, N8 e N9 da seção 16 dependem do redeploy. O PDF com a marca visível (N3) é o que confirma o propósito desta mudança.
