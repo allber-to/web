@@ -77,7 +77,7 @@ Verificação E7 na VPS cabe exclusivamente ao coordenador após P1–P6: POST v
 1. Fechar inventário P1–P5 e condições D1–D4 do adendo HTTPS: dois hosts reais, certificados válidos, domínio do Compose associado ao nginx:80 e conectividade do proxy. Email administrador já foi fornecido ao coordenador. Não criar bindings de host nem inventar rede externa do painel.
 2. Publicar/referenciar commit revisado e tag identificada. Usar o projeto allberto, sem tocar projetos alheios.
 3. Serviço backend Compose: Git público, ref aprovada, Build Path `/deploy/easypanel`, arquivo `compose.yml`. Ambiente novo no editor e Create .env file ligado. `APP_URL=https://<host da API>`, sem barra final. Guardar APP_KEY fora do painel com o proprietário. Não reutilizar credenciais locais.
-4. `REQUIRE_HTTPS=true` fixo; `TRUSTED_PROXIES` tem default `*`, substituível por faixa verificada do proxy. Essa confiança depende de nenhuma porta direta publicada. App permanece somente na rede backend internal; nginx permanece em backend + edge. Não abrir egress do app nem adicionar uma rede externa presumida.
+4. `REQUIRE_HTTPS=true` fixo; `TRUSTED_PROXIES` tem default `*`, substituível por faixa verificada do proxy. Essa confiança depende de nenhuma porta direta publicada. Conforme §16, app participa de backend internal + egress própria com saída irrestrita; somente app usa egress. MySQL/Redis ficam apenas em backend internal e nginx permanece em backend + edge. Não adicionar rede externa presumida do painel. SENTRY_LARAVEL_DSN vazio e DISABLE_AUTO_UPDATE=true são fixos; o transporte MAIL_MAILER=log, não o isolamento de rede, impede envio de email.
 5. Deploy backend e domínio HTTPS no nginx:80; conferir versão, volumes e H1–H4 (certificado, ausência de loop, HTTP→HTTPS e versão API). Testar E7 com POST vazio sem credenciais e GET /setup; interromper se cadastro não for recusado ou setup estiver aberto.
 6. Frontend pré-compilado conforme §15 abaixo: fonte Git, branch main, Build Path `/deploy/easypanel`, Dockerfile leve com URL e checksum da release versionados. Não executar build Node na VPS. Domínio HTTPS do web aponta para porta interna 80, sem publicação de host port; não há variáveis obrigatórias nem segredos no serviço web.
 7. Executar login/refresh, PDF/portal HTTPS, ausência de mixed content/CORS, E8/E9, dump e inventário alheio depois. Não executar smoke local nem specs upstream contra VPS.
@@ -99,7 +99,7 @@ Build final exit 0; script E5/self-checks exit 0; nginx -t exit 0; rotas/cache/4
 
 ## Ajuste HTTPS — adendo §14
 
-Removidos `nginx.ports` e API_PORT; REQUIRE_HTTPS fixado em true; TRUSTED_PROXIES interpolado com default `*`; env.example orienta APP_URL HTTPS. Redes e volumes preservados. Somente compose.yml, env.example e este handoff alterados nesta tarefa. Validação efetiva do Compose com valores fictícios confirma zero ports, app somente na rede internal, nginx em backend/edge, nenhuma rede externa e os valores HTTPS/proxy. Também foi verificada a substituição do wildcard por faixa fornecida no ambiente. Não foram gerados segredos, iniciados containers ou feitos builds. Certificados/roteamento/loops e links HTTPS continuam pendentes no painel.
+Removidos `nginx.ports` e API_PORT; REQUIRE_HTTPS fixado em true; TRUSTED_PROXIES interpolado com default `*`; env.example orienta APP_URL HTTPS. Redes e volumes preservados. Somente compose.yml, env.example e este handoff alterados nesta tarefa. A validação original deste adendo confirmou zero ports, app somente na rede internal, nginx em backend/edge, nenhuma rede externa e os valores HTTPS/proxy. O isolamento do app foi posteriormente substituído pela rede egress aprovada no §16; a validação atual está registrada ao final deste handoff. Também foi verificada a substituição do wildcard por faixa fornecida no ambiente. Não foram gerados segredos, iniciados containers ou feitos builds. Certificados/roteamento/loops e links HTTPS continuam pendentes no painel.
 
 Check HTTPS: `python3 /tmp/allberto-easypanel-validation/check-https.py`, exit 0; evidência sanitizada `/tmp/allberto-easypanel-validation/https-compose-check.log`. `git diff --check` também passou. O script apenas lê `docker compose config --format json` em memória com placeholders, sem imprimir ambiente expandido.
 
@@ -162,3 +162,105 @@ W1 e W2 definitivos passaram com a release real, conforme atualização acima. W
 Novo Dockerfile construído **sem build args**, somente defaults versionados: exit 0, wget HTTPS concluiu, sha256sum exibiu `/tmp/allberto-web.tar.gz: OK`, pacote extraído e arquivo temporário removido. Imagem local não contém Node. `nginx -t` exit 0 e GET local `/version.json` retornou a revisão `52db1b5423eafac06d43c38b710f23b6a5fdc6c4` com cache no-store. Não foi repetido build Node nem o teste W5 de fixture.
 
 Evidências: `/tmp/allberto-easypanel-release/lightweight-build.log`, `lightweight-nginx-test.log` e `lightweight-check.json`. Container próprio temporário `allberto-release-defaults-check` usou loopback 18092 e foi removido; runtime local anterior preservado. Fonte congelada, `git diff --check` passou. W3/W4 na VPS e deploy web continuam condicionados à validação H1–H4 do backend pelo operador.
+
+## Pins observados na VPS e procedimento E9
+
+Conforme etapa 3 do inventário do operador (somente leitura deste relatório pelo Astra), MySQL e Redis estavam saudáveis em linux/amd64. Fixados exatamente os RepoDigests observados:
+
+- `mysql:8@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902`
+- `redis:alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3`
+
+O próximo redeploy aplica referências imutáveis às mesmas imagens já executadas. nginx não foi fixado: o digest reportado é da imagem construída, insuficiente para inferir o digest da base. Nenhuma consulta a registro nem build adicional. Compose com placeholders passou (exit 0), incluindo assertions HTTPS, isolamento e ausência de portas; log `/tmp/allberto-easypanel-validation/pinned-compose-check.log`.
+
+### Backup manual anterior ao redeploy — somente operador, Console Docker
+
+Os comandos abaixo **não foram executados pelo Astra**. Usam os nomes exatos observados `allberto_backend-mysql-1` e `allberto_backend-app-1`. Executar em janela sem edições de dados; se qualquer comando falhar, parar e não declarar backup concluído. Não habilitar `set -x`, não imprimir env, SQL ou conteúdo de tar. O dump usa a senha root já presente dentro do MySQL, sem colocar seu valor na linha de comando do host.
+
+```sh
+set -eu
+umask 077
+BACKUP_STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+BACKUP_DIR="/var/www/html/storage/app/backups/$BACKUP_STAMP"
+BACKUP_STAGE=$(mktemp -d /tmp/allberto-backup-transfer.XXXXXX)
+
+docker exec allberto_backend-app-1 sh -c '
+  set -eu
+  umask 077
+  mkdir -p /var/www/html/storage/app/backups
+  chmod 700 /var/www/html/storage/app/backups
+  mkdir "$1"
+' sh "$BACKUP_DIR"
+
+docker exec allberto_backend-mysql-1 sh -c '
+  set -eu
+  MYSQL_PWD="$MYSQL_ROOT_PASSWORD" exec mysqldump \
+    --user=root --single-transaction --no-tablespaces --set-gtid-purged=OFF ninja
+' > "$BACKUP_STAGE/ninja.sql"
+test -s "$BACKUP_STAGE/ninja.sql"
+chmod 600 "$BACKUP_STAGE/ninja.sql"
+docker cp "$BACKUP_STAGE/ninja.sql" "allberto_backend-app-1:$BACKUP_DIR/ninja.sql"
+
+docker exec allberto_backend-app-1 sh -c '
+  set -eu
+  umask 077
+  backup_dir=$1
+  chmod 600 "$backup_dir/ninja.sql"
+  tar --exclude=./app/backups -czf "$backup_dir/storage.tar.gz" \
+    -C /var/www/html/storage .
+  test -s "$backup_dir/ninja.sql"
+  test -s "$backup_dir/storage.tar.gz"
+  tar -tzf "$backup_dir/storage.tar.gz" >/dev/null
+  cd "$backup_dir"
+  sha256sum ninja.sql storage.tar.gz > SHA256SUMS
+  chmod 600 ninja.sql storage.tar.gz SHA256SUMS
+  sha256sum -c SHA256SUMS
+  wc -c ninja.sql storage.tar.gz
+  sha256sum ninja.sql storage.tar.gz
+' sh "$BACKUP_DIR"
+
+rm -rf "$BACKUP_STAGE"
+printf 'Backup local verificado em %s\n' "$BACKUP_DIR"
+```
+
+A pasta com data fica no volume persistente **app_storage**, em `storage/app/backups`, fora de `storage/app/public`. Proteção inicial: diretórios 0700 e arquivos 0600. Essa proteção não permanece igual após redeploy: o init.sh da imagem aplica chown www-data e chmod 755/644 ao storage; as cópias passam a ser legíveis pelo PHP. Continuam fora de storage/app/public, sem publicação web por esse caminho, mas isso não equivale a isolamento do processo da aplicação. O staging temporário serve apenas à transferência entre containers e é removido somente após sucesso das verificações na cópia persistente. O tar exclui todo `./app/backups`, portanto não inclui a si mesmo, o dump nem backups anteriores. `set -e` preserva os erros do dump e do tar; não existe pipeline que possa esconder falha do produtor. Se o tar informar arquivo alterado durante leitura, repetir em janela estável em nova pasta datada, sem ignorar exit status.
+
+Registrar apenas caminho, exit 0, tamanhos e checksums. Antes de redeploy, conservar os IDs e valores dos registros de teste observados na UI/API; depois do redeploy web/backend, reler os mesmos IDs e confirmar saldo, health e ausência de recriação de conta. Verificar também que o diretório de backup e SHA256SUMS continuam no app_storage após a recriação do container.
+
+Isso comprova somente geração e integridade de cópias **na mesma VPS**. Não é backup externo nem restauração testada; falha/perda do volume ou servidor ainda perde essas cópias. APP_KEY precisa continuar guardada fora do painel pelo proprietário, sem ser colocada em log ou no tar de storage. Destino externo, retenção e restauração permanecem requisitos separados antes de dados reais.
+
+## Incidente: preço perdido ao avançar rapidamente no assistente (19/11/2026)
+
+O coordenador confirmou na API que a descrição foi gravada, mas a fatura de teste criada pela UI tinha `cost=0`, `quantity=1`, `amount=0` após digitar preço 10 e avançar imediatamente. Evidência original do coordenador: `/tmp/allberto-easypanel-release/draft-ui-investigation.json`. Não fiz acesso ao ambiente publicado nesta investigação.
+
+Causa reproduzida no componente real `NumberInputField` + `NumericFormat`: `changeOverride` atualizava somente o estado interno e entregava ao formulário após 500 ms; seu blur não entregava nada. A implementação instalada de `react-use/esm/useDebounce.js` e `useTimeoutFn.js` confirma que o cleanup cancela o timer ao desmontar. O teste antes da correção mostrou parent state `0` quando deveria ser `10` (`/tmp/allberto-number-blur-red.log`, 1 falha/4 passes). Foram inspecionados os consumidores, em particular os sete campos com override em pagamento, parcelas de invoice/quote/credit/purchase order e quantidade/preço do assistente. Nenhum desses callers foi alterado.
+
+Correção limitada a `src/components/forms/NumberInputField.tsx`: o blur cancela o timer e normaliza o valor atual usando a conversão existente. Uma ref guarda o último valor entregue/sincronizado pelas props para evitar dirty/entregas duplicadas quando nada mudou em override. A digitação continua com debounce de 500 ms; desmontar sem blur não entrega alterações descartadas. O modo sem override conserva sua entrega no blur.
+
+Validação final:
+
+- `npx vitest run tests/unit/number-input-field-blur.test.ts`: **7 PASS**, exit 0. Cobrem avanço imediato, debounce, cancel sem duplicação, descarte por unmount, blur sem mudança e após entrega, vírgula `10,50 → 10.5`, e modo sem override. Log `/tmp/allberto-number-blur-green.log`.
+- `npx playwright test --config tests/local/number-wizard.config.ts`: **1 PASS**, exit 0. Chrome headless com perfil novo; harness adicional monta o Wizard/steps/stores reais e reutiliza fixtures sintéticas. Clique Playwright real tira foco; entrada→blur medidos em **43,9 ms (<500 ms obrigatório)** e POST interceptado de salvar contém `line_items[0].cost=10`. Toda rede externa é bloqueada; nenhum request desconhecido ocorreu. Evidência `tests/local/artifacts/number-wizard/allberto-number-wizard-imm-6a7be--price-in-the-saved-invoice/numeric-blur.json`; log `/tmp/allberto-number-wizard-pass.log`. A configuração reaproveita o preview local4178 sem pará-lo e não usa setup/reset upstream.
+- `npx tsc --noEmit --incremental`: exit 0; `/tmp/allberto-number-blur-tsc.log`.
+- Biome lint dos cinco arquivos TS/TSX da mudança: exit 0; `/tmp/allberto-number-blur-lint.log`.
+
+Arquivos adicionais: teste unitário, `tests/local/{number-wizard-main.tsx,number-wizard.html,number-wizard.config.ts,allberto-number-wizard.spec.ts}`. Os fixtures/config/main anteriores permanecem intactos. Tentativas iniciais de navegador ajustaram a sequência das etapas e removeram congelamento global do relógio; o teste final usa eventos reais e mede o intervalo em vez de depender de timer mock.
+
+Fonte congelada para revisão CTO. Não houve publicação, alteração de API/runtime, acesso ao Chrome do operador, novos dados reais ou alteração de PDF/branding. Continua fora desta correção o avanço programático que não dispara blur em menos de 500 ms. A confirmação no frontend publicado depende de nova release/deploy coordenados. A nota E9 acima também foi corrigida: permissões 0700/0600 são iniciais; o init da imagem normaliza storage para www-data/755/644 após reinício, e backup externo/restauração continuam pendentes.
+
+## §16 — saída do app para renderizar a atribuição oficial no PDF
+
+Aplicado o diff aprovado pelo CTO: app em `backend` + `egress`; rede própria `egress: {}` não interna e usada somente por app. MySQL e Redis continuam somente em backend `internal: true`; nginx continua em backend/edge. Nenhuma porta publicada, nenhuma rede externa presumida, nenhum override PHP ou imagem nova. Os digests de app/MySQL/Redis e o transporte `MAIL_MAILER=log` permanecem. Fixados `SENTRY_LARAVEL_DSN: ""` e `DISABLE_AUTO_UPDATE: "true"` no environment do app; documentados como fixos em env.example.
+
+**A saída é normal e irrestrita, sem allowlist de destinos.** A garantia anterior de nada sair da máquina deixou de valer para este deploy. O email depende da configuração `log`, não de bloqueio de rede; gateways/webhooks configurados futuramente podem realizar chamadas reais. O Chromium pode buscar URLs de imagens presentes no conteúdo/modelo, inclusive endereços internos. Não foi auditada toda chamada HTTP do upstream. O isolamento do projeto local da story002 não mudou.
+
+Validação: `python3 /tmp/allberto-easypanel-validation/check-https.py` **PASS, exit 0**; log `/tmp/allberto-easypanel-validation/egress-compose-check.log`. O script usa Docker `--context desktop-linux`, `compose --env-file /dev/null config --format json`, valores fictícios para todas as variáveis exigidas e não imprime a expansão. Asserts conferem redes exatas, exclusividade de egress ao app, backend internal, zero ports, ausência de redes externas, DSN vazio, auto-update=true, mail log/host vazio, pins MySQL/Redis, HTTPS e trusted proxy default/override. Não foram lidos ambientes reais nem criados containers; sem build/suíte de aplicação nesta alteração.
+
+Fonte congelada para revisão. Operador deve aplicar no redeploy E9 após backup; N1–N9 do §16 continuam pendentes no runtime, incluindo PDF com atribuição renderizada, flags efetivas, auto-update403 e email somente em log. Esta validação é da configuração, não prova a renderização ou a conectividade na VPS.
+
+### Correção incremental CTO — preservar precisão armazenada no blur
+
+A revisão final de `docs/reviews/fable-number-input.md` identificou regressão na primeira correção: com override, valor interno `1.2345` e precisão visual 2, o texto exibido `1.23` era relido no blur e enviado sem digitação. Acrescentei o teste antes do ajuste: **1 falha/8 passes**, entregando indevidamente `'1.23'` (`/tmp/allberto-number-precision-red.log`, exit 1).
+
+Ajuste mínimo: somente o ramo `changeOverride` do blur usa `String(currentValue ?? 0)`, exatamente como o debounce. O parser do texto permanece no ramo sem override; cancelamento do timer e comparação com a última entrega continuam intactos. Os dois testes novos comprovam que blur sem digitação conserva `1.2345` sem entrega e que digitar `2` entrega `'2'` imediatamente, uma única vez mesmo após 600 ms.
+
+Validação: teste focado **9 PASS**, TSC e lint dos dois arquivos **exit 0**. Logs `/tmp/allberto-number-precision-{green,tsc,lint}.log`. O teste de clique real já aprovado não foi repetido: evento blur e navegação permanecem iguais; a mudança seleciona o valor interno já atualizado no evento de digitação anterior. Compose/env §16 e fixtures de navegador congelados não foram alterados. Fonte novamente congelada para revisão incremental; sem publicação/runtime.

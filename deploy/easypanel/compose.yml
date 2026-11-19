@@ -11,6 +11,8 @@ services:
       NINJA_ENVIRONMENT: selfhost
       APP_ENV: production
       APP_DEBUG: "false"
+      SENTRY_LARAVEL_DSN: ""
+      DISABLE_AUTO_UPDATE: "true"
       REQUIRE_HTTPS: "true"
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-*}
       IS_DOCKER: "true"
@@ -31,7 +33,7 @@ services:
     volumes:
       - app_public:/var/www/html/public
       - app_storage:/var/www/html/storage
-    networks: [backend]
+    networks: [backend, egress]
     depends_on:
       mysql:
         condition: service_healthy
@@ -48,7 +50,7 @@ services:
       app:
         condition: service_healthy
   mysql:
-    image: mysql:8
+    image: mysql:8@sha256:a81d043930e51745522bd5c430961cf8286f0a23f0a9a2a6e0108f7ea71b0902
     restart: unless-stopped
     networks: [backend]
     environment:
@@ -63,7 +65,7 @@ services:
       timeout: 5s
       retries: 12
   redis:
-    image: redis:alpine
+    image: redis:alpine@sha256:7958cfbb9d152f87dadfbc89f1b0b15938f0b81ff8982feb327476f4911935c3
     restart: unless-stopped
     networks: [backend]
     volumes: [redis_data:/data]
@@ -76,6 +78,7 @@ networks:
   backend:
     internal: true
   edge: {}
+  egress: {}
 volumes:
   app_public: {}
   app_storage: {}
