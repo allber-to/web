@@ -45,6 +45,9 @@ function Payments() {
         })}
       >
         <div className="flex flex-col space-y-2 w-full lg:w-2/4">
+          {invoice && paymentAllocationRows.length === 0 && (
+            <p className="allberto-entity-empty">{t('no_records_found')}</p>
+          )}
           {invoice &&
             paymentAllocationRows.map((row) => (
               <InvoicePaymentAllocationBox

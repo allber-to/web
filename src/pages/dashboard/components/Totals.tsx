@@ -25,7 +25,7 @@ import {
 } from '$app/common/helpers/dateRange';
 import { decodeDashboardField } from '$app/common/helpers/react-settings';
 import { request } from '$app/common/helpers/request';
-import { useFormatMoney } from '$app/common/hooks/money/useFormatMoney';
+import { useDashboardFormatMoney } from '$app/pages/dashboard/hooks/useDashboardFormatMoney';
 import { useCurrentCompany } from '$app/common/hooks/useCurrentCompany';
 import { useCurrentCompanyDateFormats } from '$app/common/hooks/useCurrentCompanyDateFormats';
 import { usePreferences } from '$app/common/hooks/usePreferences';
@@ -40,6 +40,7 @@ import { antdLocaleAtom } from '$app/components/DropdownDateRangePicker';
 import { SelectField } from '$app/components/forms';
 import Toggle from '$app/components/forms/Toggle';
 import { Spinner } from '$app/components/Spinner';
+import { useHideValues } from '$app/components/layouts/common/privacy';
 import { Chart } from '$app/pages/dashboard/components/Chart';
 import {
   DropdownDateRangePicker,
@@ -132,7 +133,8 @@ const GLOBAL_DATE_RANGES: Record<string, { start: string; end: string }> = {
 export function Totals() {
   const [t] = useTranslation();
 
-  const formatMoney = useFormatMoney();
+  const formatMoney = useDashboardFormatMoney();
+  const hideValues = useHideValues();
   const { Preferences, update, preferences } = usePreferences();
 
   const colors = useColorScheme();
@@ -302,6 +304,27 @@ export function Totals() {
       {totals.isLoading && (
         <div className="w-full flex justify-center">
           <Spinner />
+        </div>
+      )}
+
+      {totals.isError && (
+        <div
+          role="alert"
+          className="ab-card flex flex-wrap items-center gap-3 p-4 mb-4 text-sm"
+          style={{ color: 'var(--ab-muted)' }}
+        >
+          <span className="flex-1">{t('allberto_history_error')}</span>
+          <button
+            type="button"
+            className="ab-btn ab-btn--secondary ab-btn--sm"
+            onClick={() => {
+              totals.refetch();
+              chart.refetch();
+            }}
+            disabled={totals.isFetching}
+          >
+            {t('allberto_retry')}
+          </button>
         </div>
       )}
 
@@ -525,7 +548,7 @@ export function Totals() {
       )}
 
       <div className="grid grid-cols-10 mt-4 gap-8">
-        {company && (
+        {company && totals.isSuccess && (
           <Card
             title={t('recent_transactions')}
             className="col-span-10 xl:col-span-3 shadow-sm"
@@ -634,7 +657,7 @@ export function Totals() {
           </Card>
         )}
 
-        {chartData && (
+        {chart.isSuccess && (
           <Card
             title={t('overview')}
             className="col-span-10 xl:col-span-7 shadow-sm"
@@ -644,12 +667,24 @@ export function Totals() {
             headerStyle={{ borderColor: colors.$20 }}
             withoutHeaderPadding
           >
-            <Chart
-              chartSensitivity={chartScale}
-              dates={{ start_date: dates.start_date, end_date: dates.end_date }}
-              data={chartData[currency]}
-              currency={currency.toString()}
-            />
+            {hideValues ? (
+              <p
+                className="flex items-center justify-center text-sm"
+                style={{ minHeight: 240, color: 'var(--ab-muted)' }}
+              >
+                {t('allberto_chart_hidden')}
+              </p>
+            ) : (
+              <Chart
+                chartSensitivity={chartScale}
+                dates={{
+                  start_date: dates.start_date,
+                  end_date: dates.end_date,
+                }}
+                data={chartData[currency]}
+                currency={currency.toString()}
+              />
+            )}
           </Card>
         )}
       </div>

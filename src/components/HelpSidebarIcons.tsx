@@ -236,8 +236,9 @@ export function HelpSidebarIcons(props: Props) {
       />
 
       <nav
+        aria-label={t('help') as string}
         style={{ borderColor: colors.$5 }}
-        className={classNames('flex space-x-2.5 py-4 text-white border-t', {
+        className={classNames('ab-help-icons flex space-x-2.5 py-4 border-t', {
           'justify-end': mobileNavbar,
           'justify-around': !mobileNavbar,
           'px-2': !isUpdateAvailable,
@@ -251,12 +252,14 @@ export function HelpSidebarIcons(props: Props) {
                 content={t('update_available')}
                 className="rounded-md text-xs p-2 bg-[#F2F2F2]"
               >
-                <div
-                  className="cursor-pointer"
+                <button
+                  type="button"
+                  className="ab-help-btn"
+                  aria-label={t('update_available') as string}
                   onClick={() => setIsUpdateModalVisible(true)}
                 >
-                  <TriangleWarning color="white" size="1.3rem" />
-                </div>
+                  <TriangleWarning color="currentColor" size="1.3rem" />
+                </button>
               </Tippy>
             )}
 
@@ -266,12 +269,14 @@ export function HelpSidebarIcons(props: Props) {
                 content={t('error')}
                 className="rounded-md text-xs p-2 bg-[#F2F2F2]"
               >
-                <div
-                  className="cursor-pointer"
+                <button
+                  type="button"
+                  className="ab-help-btn"
+                  aria-label={t('error') as string}
                   onClick={() => setCronsNotEnabledModal(true)}
                 >
-                  <CircleWarning color="white" size="1.3rem" />
-                </div>
+                  <CircleWarning color="currentColor" size="1.3rem" />
+                </button>
               </Tippy>
             )}
 
@@ -281,21 +286,25 @@ export function HelpSidebarIcons(props: Props) {
               className="rounded-md text-xs p-2 bg-[#F2F2F2]"
             >
               {isHosted() ? (
-                <div
-                  className="cursor-pointer"
+                <button
+                  type="button"
+                  className="ab-help-btn"
+                  aria-label={t('contact_us') as string}
                   onClick={() => setIsContactVisible(true)}
                 >
                   <Mail size={21.5} />
-                </div>
+                </button>
               ) : (
-                <div
-                  className="cursor-pointer"
+                <button
+                  type="button"
+                  className="ab-help-btn"
+                  aria-label={`${t('contact_us')} (Slack)` as string}
                   onClick={() =>
                     window.open('https://slack.invoiceninja.com', '_blank')
                   }
                 >
-                  <Icon element={FaSlack} color="white" size={21.5} />
-                </div>
+                  <Icon element={FaSlack} color="currentColor" size={21.5} />
+                </button>
               )}
             </Tippy>
 
@@ -305,14 +314,16 @@ export function HelpSidebarIcons(props: Props) {
                 content={t('support_forum')}
                 className="rounded-md text-xs p-2 bg-[#F2F2F2]"
               >
-                <div
-                  className="cursor-pointer"
+                <button
+                  type="button"
+                  className="ab-help-btn"
+                  aria-label={t('support_forum') as string}
                   onClick={() =>
                     window.open('https://forum.invoiceninja.com', '_blank')
                   }
                 >
-                  <Message color="white" size="1.3rem" />
-                </div>
+                  <Message color="currentColor" size="1.3rem" />
+                </button>
               </Tippy>
             )}
 
@@ -324,8 +335,10 @@ export function HelpSidebarIcons(props: Props) {
                 content={t('user_guide')}
                 className="rounded-md text-xs p-2 bg-[#F2F2F2]"
               >
-                <div
-                  className="cursor-pointer"
+                <button
+                  type="button"
+                  className="ab-help-btn"
+                  aria-label={t('user_guide') as string}
                   onClick={() =>
                     window.open(
                       props.docsLink
@@ -335,8 +348,8 @@ export function HelpSidebarIcons(props: Props) {
                     )
                   }
                 >
-                  <CircleQuestion color="white" size="1.3rem" />
-                </div>
+                  <CircleQuestion color="currentColor" size="1.3rem" />
+                </button>
               </Tippy>
             )}
 
@@ -345,12 +358,14 @@ export function HelpSidebarIcons(props: Props) {
               content={t('about')}
               className="rounded-md text-xs p-2 bg-[#F2F2F2]"
             >
-              <div
-                className="cursor-pointer"
+              <button
+                type="button"
+                className="ab-help-btn"
+                aria-label={t('about') as string}
                 onClick={() => setIsAboutVisible(true)}
               >
-                <CircleInfo color="white" size="1.3rem" />
-              </div>
+                <CircleInfo color="currentColor" size="1.3rem" />
+              </button>
             </Tippy>
 
             <Tippy
@@ -358,16 +373,19 @@ export function HelpSidebarIcons(props: Props) {
               content={t('dark_mode')}
               className="rounded-md text-xs p-2 bg-[#F2F2F2]"
             >
-              <div
-                className="cursor-pointer"
+              <button
+                type="button"
+                className="ab-help-btn"
+                aria-label={t('dark_mode') as string}
+                aria-pressed={Boolean(reactSettings?.dark_mode)}
                 onClick={() => handleDarkLightMode(!reactSettings?.dark_mode)}
               >
                 {reactSettings?.dark_mode ? (
-                  <Sun color="white" size="1.3rem" />
+                  <Sun color="currentColor" size="1.3rem" />
                 ) : (
-                  <MoonStars color="white" size="1.3rem" />
+                  <MoonStars color="currentColor" size="1.3rem" />
                 )}
-              </div>
+              </button>
             </Tippy>
           </>
         )}
@@ -381,16 +399,21 @@ export function HelpSidebarIcons(props: Props) {
           }
           className="rounded-md text-xs p-2 bg-[#F2F2F2]"
         >
-          <div
-            className="cursor-pointer"
+          <button
+            type="button"
+            className="ab-help-btn"
+            aria-label={
+              isMiniSidebar ? t('show_menu') : (t('hide_menu') as string)
+            }
+            aria-pressed={isMiniSidebar}
             onClick={() => handleCollapseExpandSidebar(!isMiniSidebar)}
           >
             {isMiniSidebar ? (
-              <OpenNavbarArrow color="#e5e7eb" size="1.5rem" />
+              <OpenNavbarArrow color="currentColor" size="1.5rem" />
             ) : (
-              <CloseNavbarArrow color="#e5e7eb" size="1.35rem" />
+              <CloseNavbarArrow color="currentColor" size="1.35rem" />
             )}
-          </div>
+          </button>
         </Tippy>
       </nav>
     </>

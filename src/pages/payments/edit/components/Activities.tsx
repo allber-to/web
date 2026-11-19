@@ -47,7 +47,7 @@ export default function Activities() {
   const activityElement = useGenerateActivityElement();
 
   const { data: activities, isLoading } = useQuery({
-    queryKey: ['/api/v1/activities/entity', id],
+    queryKey: ['/api/v1/activities/entity', 'payment', id],
     queryFn: () =>
       request('POST', endpoint('/api/v1/activities/entity'), {
         entity: 'payment',

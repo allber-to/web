@@ -1,3 +1,4 @@
+import '$app/pages/allberto-entities.css';
 /**
  * Invoice Ninja (https://invoiceninja.com).
  *
@@ -39,13 +40,10 @@ import { TagPills } from '$app/components/tags/TagPills';
 
 export const defaultColumns: string[] = [
   'name',
-  'contact_email',
-  'id_number',
   'balance',
   'paid_to_date',
-  'created_at',
-  'last_login_at',
-  'website',
+  'contact_email',
+  'entity_state',
 ];
 
 export function useAllClientColumns() {
@@ -142,12 +140,19 @@ export function useClientColumns() {
       id: 'display_name',
       label: t('name'),
       format: (value, client) => (
-        <DynamicLink
-          to={route('/clients/:id', { id: client.id })}
-          renderSpan={disableNavigation('client', client)}
-        >
-          {value}
-        </DynamicLink>
+        <div className="allberto-entity-client-name">
+          <DynamicLink
+            to={route('/clients/:id', { id: client.id })}
+            renderSpan={disableNavigation('client', client)}
+          >
+            {value}
+          </DynamicLink>
+          {client.id_number && (
+            <span className="allberto-entity-secondary">
+              {client.id_number}
+            </span>
+          )}
+        </div>
       ),
     },
     {

@@ -8,6 +8,7 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import '$app/pages/allberto-entities.css';
 import { useTitle } from '$app/common/hooks/useTitle';
 import { Page } from '$app/components/Breadcrumbs';
 import { DataTable } from '$app/components/DataTable';
@@ -116,67 +117,72 @@ export default function Payments() {
 
   return (
     <Default title={t('payments')} breadcrumbs={pages} docsLink="en/payments/">
-      <DataTable
-        resource="payment"
-        columns={columns}
-        endpoint={`/api/v1/payments?include=client,invoices${
-          shouldShowTagFilter ? ',tags' : ''
-        }&without_deleted_clients=true&sort=id|desc${
-          shouldShowTagFilter ? '' : '&tag_ids='
-        }`}
-        linkToCreate="/payments/create"
-        bulkRoute="/api/v1/payments/bulk"
-        linkToEdit="/payments/:id/edit"
-        withResourcefulActions
-        customActions={actions}
-        customFilters={filters}
-        customBulkActions={customBulkActions}
-        customFilterPlaceholder="status"
-        filterColumns={shouldShowTagFilter ? filterColumns : undefined}
-        showRestore={(resource: Payment) => !resource.is_deleted}
-        showDelete={(resource: Payment) => showDeletePaymentAction(resource)}
-        rightSide={
-          <div className="flex items-center space-x-2">
-            <DataTableColumnsPicker
-              columns={paymentColumns as unknown as string[]}
-              defaultColumns={defaultColumns}
-              table="payment"
-            />
+      <section
+        className="allberto-entity-list allberto-entity-payments"
+        aria-label={t('payments')}
+      >
+        <DataTable
+          resource="payment"
+          columns={columns}
+          endpoint={`/api/v1/payments?include=client,invoices${
+            shouldShowTagFilter ? ',tags' : ''
+          }&without_deleted_clients=true&sort=id|desc${
+            shouldShowTagFilter ? '' : '&tag_ids='
+          }`}
+          linkToCreate="/payments/create"
+          bulkRoute="/api/v1/payments/bulk"
+          linkToEdit="/payments/:id/edit"
+          withResourcefulActions
+          customActions={actions}
+          customFilters={filters}
+          customBulkActions={customBulkActions}
+          customFilterPlaceholder="status"
+          filterColumns={shouldShowTagFilter ? filterColumns : undefined}
+          showRestore={(resource: Payment) => !resource.is_deleted}
+          showDelete={(resource: Payment) => showDeletePaymentAction(resource)}
+          rightSide={
+            <div className="flex items-center space-x-2">
+              <DataTableColumnsPicker
+                columns={paymentColumns as unknown as string[]}
+                defaultColumns={defaultColumns}
+                table="payment"
+              />
 
-            <Guard
-              type="component"
-              component={<ImportButton route="/payments/import" />}
-              guards={[
-                or(permission('create_payment'), permission('edit_payment')),
-              ]}
-            />
-          </div>
-        }
-        onTableRowClick={(payment) => {
-          setSliderPaymentId(payment.id);
-          setPaymentSliderVisibility(true);
-        }}
-        linkToCreateGuards={[permission('create_payment')]}
-        hideEditableOptions={!hasPermission('edit_payment')}
-        showRestoreBulk={(selectedPayments) =>
-          selectedPayments.every(
-            (payment) => getEntityState(payment) === EntityState.Archived
-          )
-        }
-        enableSavingFilterPreference
-        dateRangeColumns={[
-          {
-            column: 'date',
-            queryParameterKey: 'date_range',
-            includeColumnNameInQuery: true,
-          },
-          {
-            column: 'created_at',
-            queryParameterKey: 'created_between',
-          },
-        ]}
-        enableSavingLatestDataForNavigation
-      />
+              <Guard
+                type="component"
+                component={<ImportButton route="/payments/import" />}
+                guards={[
+                  or(permission('create_payment'), permission('edit_payment')),
+                ]}
+              />
+            </div>
+          }
+          onTableRowClick={(payment) => {
+            setSliderPaymentId(payment.id);
+            setPaymentSliderVisibility(true);
+          }}
+          linkToCreateGuards={[permission('create_payment')]}
+          hideEditableOptions={!hasPermission('edit_payment')}
+          showRestoreBulk={(selectedPayments) =>
+            selectedPayments.every(
+              (payment) => getEntityState(payment) === EntityState.Archived
+            )
+          }
+          enableSavingFilterPreference
+          dateRangeColumns={[
+            {
+              column: 'date',
+              queryParameterKey: 'date_range',
+              includeColumnNameInQuery: true,
+            },
+            {
+              column: 'created_at',
+              queryParameterKey: 'created_between',
+            },
+          ]}
+          enableSavingLatestDataForNavigation
+        />
+      </section>
 
       {!disableNavigation('payment', paymentSlider) && <PaymentSlider />}
 

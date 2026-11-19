@@ -38,7 +38,10 @@ import {
   useSocketEvent,
   WithSocketId,
 } from '$app/common/queries/sockets';
-import { bindChannelLogging, logSocketDebug } from '$app/common/queries/socketLogging';
+import {
+  bindChannelLogging,
+  logSocketDebug,
+} from '$app/common/queries/socketLogging';
 import { subscribeWhenConnected } from '$app/common/queries/socketSubscription';
 import { NonClickableElement } from './cards/NonClickableElement';
 import { Slider } from './cards/Slider';
@@ -589,11 +592,18 @@ export function Notifications() {
 
       return () => {
         unbindChannelLogging();
-        channel.unbind('App\\Events\\General\\GenericMessage', onGenericMessage);
+        channel.unbind(
+          'App\\Events\\General\\GenericMessage',
+          onGenericMessage
+        );
         sockets.unsubscribe(channel.name);
       };
     });
-  }, [sockets, reactSettings.preferences.enable_public_notifications, setNotifications]);
+  }, [
+    sockets,
+    reactSettings.preferences.enable_public_notifications,
+    setNotifications,
+  ]);
 
   if (
     isSelfHosted() &&
@@ -604,17 +614,29 @@ export function Notifications() {
 
   return (
     <>
-      <div className="relative mt-2 mr-1">
+      <div className="relative">
         <button
+          type="button"
           onClick={() => setIsVisible(!isVisible)}
-          className={classNames({
-            'animate-jiggle': notifications.length > 0,
+          aria-label={
+            notifications.length > 0
+              ? `${t('notifications')} (${notifications.length})`
+              : (t('notifications') as string)
+          }
+          aria-expanded={isVisible}
+          className={classNames('ab-tb-btn', {
+            'animate-jiggle motion-reduce:animate-none':
+              notifications.length > 0,
           })}
         >
-          <Icon className="w-5 h-5" element={Bell} color={colors.$3} />
+          <Icon className="w-4 h-4" element={Bell} color="currentColor" />
 
           {notifications.length > 0 ? (
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full border-white border-2 bg-blue-500"></span>
+            <span
+              aria-hidden="true"
+              className="absolute top-0 right-0 h-2 w-2 rounded-full border-2 bg-blue-500"
+              style={{ borderColor: 'var(--ab-topbar)' }}
+            ></span>
           ) : null}
         </button>
       </div>

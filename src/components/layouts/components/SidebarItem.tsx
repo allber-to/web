@@ -8,241 +8,187 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
-import classNames from 'classnames';
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { styled } from 'styled-components';
-import { useColorScheme } from '$app/common/colors';
+import { useAtomValue } from 'jotai';
+import { CSSProperties, MouseEvent, ReactNode } from 'react';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { preventLeavingPageAtom } from '$app/common/hooks/useAddPreventNavigationEvents';
+import { usePreventNavigation } from '$app/common/hooks/usePreventNavigation';
 import { useReactSettings } from '$app/common/hooks/useReactSettings';
-import { Link } from '$app/components/forms';
 import { Tooltip } from '$app/components/Tooltip';
 import { useThemeColorScheme } from '$app/pages/settings/user/components/StatusColorTheme';
+import { isNavigationItemActive } from '../common/allberto-navigation';
 import { NavigationItem } from './DesktopSidebar';
 
-const Div = styled.div`
-  background-color: ${(props) => props.theme.color};
-  &:hover {
-    background-color: ${(props) => props.theme.hoverColor};
-  }
-`;
+interface NavLinkProps {
+  to: string;
+  className?: string;
+  style?: CSSProperties;
+  current?: boolean;
+  label?: string;
+  children: ReactNode;
+  onNavigate?: () => void;
+}
 
-const LinkStyled = styled(Link)`
-  &:hover {
-    background-color: ${({ theme }) => theme.hoverColor};
-  }
-`;
+/** Link de navegação que respeita a proteção de "alterações não salvas". */
+export function NavLink(props: NavLinkProps) {
+  const { prevent: preventLeavingPage } = useAtomValue(preventLeavingPageAtom);
+  const preventNavigation = usePreventNavigation();
+
+  return (
+    <RouterLink
+      to={props.to}
+      className={props.className}
+      style={props.style}
+      aria-current={props.current ? 'page' : undefined}
+      aria-label={props.label}
+      onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+        if (preventLeavingPage) {
+          event.preventDefault();
+          props.onNavigate?.();
+          preventNavigation({ url: props.to });
+          return;
+        }
+
+        props.onNavigate?.();
+      }}
+    >
+      {props.children}
+    </RouterLink>
+  );
+}
 
 interface Props {
   item: NavigationItem;
+  /** Força a versão só com ícone (sidebar mini). */
+  mini?: boolean;
+  onNavigate?: () => void;
 }
 
 export function SidebarItem(props: Props) {
   const { item } = props;
 
-  const colors = useColorScheme();
   const reactSettings = useReactSettings();
   const themeColors = useThemeColorScheme();
-
-  const isMiniSidebar = Boolean(reactSettings.show_mini_sidebar);
-
-  const [areSubOptionsVisible, setAreSubOptionsVisible] =
-    useState<boolean>(false);
-
   const location = useLocation();
-  const current = location.pathname.startsWith(item.href);
+
+  const isMini = props.mini ?? Boolean(reactSettings.show_mini_sidebar);
 
   if (!item.visible) {
-    return <></>;
+    return null;
   }
 
-  return (
-    <div
-      className={classNames('flex flex-col justify-center', {
-        'gap-y-1': item.subOptions && (current || areSubOptionsVisible),
-      })}
+  const current = isNavigationItemActive(location.pathname, item.href);
+
+  // Cores personalizadas do usuário (Configurações › Tema) continuam valendo.
+  const customStyle = (active: boolean): CSSProperties => ({
+    backgroundColor: (active ? themeColors.$1 : themeColors.$3) || undefined,
+    color: (active ? themeColors.$2 : themeColors.$4) || undefined,
+  });
+
+  const link = (
+    <NavLink
+      to={item.href}
+      current={current}
+      className="ab-navitem"
+      style={{
+        ...customStyle(current),
+        justifyContent: isMini ? 'center' : undefined,
+      }}
+      label={isMini ? item.name : undefined}
+      onNavigate={props.onNavigate}
     >
-      <Div
-        theme={{
-          color: current
-            ? themeColors.$1 || colors.$8
-            : themeColors.$3 || 'transparent',
-          hoverColor: themeColors.$1 || colors.$8,
-        }}
-        key={item.name}
-        className={classNames(
-          'flex items-center justify-between group px-1.5 text-sm font-medium rounded-md w-full',
-          {
-            'text-white border-l-4 border-transparent': current,
-            'text-gray-300 border-l-4 border-transparent': !current,
-          }
+      <span className="ab-navicon" aria-hidden="true">
+        <item.icon size="1.15rem" color="currentColor" />
+      </span>
+
+      {!isMini && <span className="ab-navlabel">{item.name}</span>}
+    </NavLink>
+  );
+
+  const showSubOptions =
+    !isMini &&
+    item.subOptions &&
+    (current ||
+      item.subOptions.some((sub) =>
+        isNavigationItemActive(location.pathname, sub.href)
+      ));
+
+  return (
+    <div className="flex flex-col">
+      <div className="ab-navrow">
+        {isMini ? (
+          <Tooltip
+            message={item.name}
+            width="auto"
+            placement="right"
+            withoutArrow
+            withoutWrapping
+          >
+            {link}
+          </Tooltip>
+        ) : (
+          link
         )}
-      >
-        <div className="flex flex-col items-center justify-between w-full">
-          <LinkStyled to={item.href} className="w-full" withoutDefaultStyling>
-            <div
-              className="flex justify-start items-center my-2 space-x-3 w-full"
-              style={{
-                color: current ? themeColors.$2 : themeColors.$4,
-              }}
-            >
-              <item.icon
-                size="1.275rem"
-                color={
-                  current
-                    ? themeColors.$2 || 'white'
-                    : themeColors.$4 || '#74747C'
-                }
-              />
 
-              {!isMiniSidebar && <span>{item.name}</span>}
-            </div>
-          </LinkStyled>
-        </div>
+        {item.rightButton && !isMini && item.rightButton.visible && (
+          <NavLink
+            to={item.rightButton.to}
+            className="ab-navadd"
+            label={
+              item.rightButton.tooltipLabel
+                ? `${item.rightButton.label} (${item.rightButton.tooltipLabel})`
+                : item.rightButton.label
+            }
+            onNavigate={props.onNavigate}
+          >
+            <item.rightButton.icon size="1rem" color="currentColor" />
+          </NavLink>
+        )}
+      </div>
 
-        {item.rightButton &&
-          !isMiniSidebar &&
-          item.rightButton.visible &&
-          (item.rightButton.tooltipLabel ? (
-            <Tooltip
-              message={item.rightButton.tooltipLabel}
-              withoutArrow
-              childrenWrapperClassName="inline-flex"
-              withoutWrapping
-              width="auto"
-              placement="right"
-            >
-              <LinkStyled
-                theme={{
-                  hoverColor: colors.$6,
-                }}
-                to={item.rightButton.to}
-                className="rounded-sm p-[0.1rem]"
-                withoutDefaultStyling
-              >
-                <item.rightButton.icon
-                  size="1.1rem"
-                  color={
-                    current
-                      ? themeColors.$2 || 'white'
-                      : themeColors.$4 || '#d1d5db'
-                  }
-                />
-              </LinkStyled>
-            </Tooltip>
-          ) : (
-            <LinkStyled
-              theme={{
-                hoverColor: colors.$6,
-              }}
-              to={item.rightButton.to}
-              className="rounded-sm p-[0.1rem]"
-              withoutDefaultStyling
-            >
-              <item.rightButton.icon
-                size="1.1rem"
-                color={
-                  current
-                    ? themeColors.$2 || 'white'
-                    : themeColors.$4 || '#d1d5db'
-                }
-              />
-            </LinkStyled>
-          ))}
-      </Div>
+      {showSubOptions && (
+        <div className="ab-navsub">
+          {item.subOptions?.map((subOption) => {
+            if (!subOption.visible) {
+              return null;
+            }
 
-      {current && (
-        <div
-          className={classNames('flex flex-col justify-center w-full', {
-            'pl-2': !isMiniSidebar,
+            const subCurrent = isNavigationItemActive(
+              location.pathname,
+              subOption.href
+            );
+
+            return (
+              <div key={subOption.href} className="ab-navrow">
+                <NavLink
+                  to={subOption.href}
+                  current={subCurrent}
+                  className="ab-navitem"
+                  style={customStyle(subCurrent)}
+                  onNavigate={props.onNavigate}
+                >
+                  <span className="ab-navicon" aria-hidden="true">
+                    <subOption.icon size="1.1rem" color="currentColor" />
+                  </span>
+                  <span className="ab-navlabel">{subOption.name}</span>
+                </NavLink>
+
+                {subOption.rightButton && subOption.rightButton.visible && (
+                  <NavLink
+                    to={subOption.rightButton.to}
+                    className="ab-navadd"
+                    label={subOption.rightButton.label}
+                    onNavigate={props.onNavigate}
+                  >
+                    <subOption.rightButton.icon
+                      size="1rem"
+                      color="currentColor"
+                    />
+                  </NavLink>
+                )}
+              </div>
+            );
           })}
-        >
-          {item.subOptions && (
-            <div className="flex flex-col space-y-1">
-              {item.subOptions.map(
-                (subOption) =>
-                  subOption.visible && (
-                    <Div
-                      key={subOption.name}
-                      theme={{
-                        color: location.pathname.startsWith(subOption.href)
-                          ? themeColors.$1 || colors.$8
-                          : themeColors.$3 || 'transparent',
-                        hoverColor: themeColors.$1 || colors.$8,
-                      }}
-                      className={classNames(
-                        'flex items-center justify-between group pl-2.5 pr-1.5 text-sm font-medium rounded-md w-full',
-                        {
-                          'text-white': location.pathname.startsWith(
-                            subOption.href
-                          ),
-                          'text-gray-300': !location.pathname.startsWith(
-                            subOption.href
-                          ),
-                        }
-                      )}
-                    >
-                      <div className="flex flex-col items-center justify-between w-full">
-                        <LinkStyled
-                          to={subOption.href}
-                          className="w-full"
-                          withoutDefaultStyling
-                        >
-                          <div
-                            className={classNames(
-                              'flex items-center my-2 space-x-3 w-full',
-                              {
-                                'justify-start': !isMiniSidebar,
-                                'justify-center': isMiniSidebar,
-                              }
-                            )}
-                            style={{
-                              color: location.pathname.startsWith(
-                                subOption.href
-                              )
-                                ? themeColors.$2
-                                : themeColors.$4,
-                            }}
-                          >
-                            <subOption.icon
-                              size={isMiniSidebar ? '1.1rem' : '1.275rem'}
-                              color={
-                                location.pathname.startsWith(subOption.href)
-                                  ? themeColors.$2 || 'white'
-                                  : themeColors.$4 || '#74747C'
-                              }
-                            />
-
-                            {!isMiniSidebar && <span>{subOption.name}</span>}
-                          </div>
-                        </LinkStyled>
-                      </div>
-
-                      {subOption.rightButton &&
-                        !isMiniSidebar &&
-                        subOption.rightButton.visible && (
-                          <LinkStyled
-                            theme={{
-                              hoverColor: colors.$6,
-                            }}
-                            to={subOption.rightButton.to}
-                            className="rounded-sm p-[0.1rem]"
-                            withoutDefaultStyling
-                          >
-                            <subOption.rightButton.icon
-                              size="1.1rem"
-                              color={
-                                location.pathname.startsWith(subOption.href)
-                                  ? themeColors.$2 || 'white'
-                                  : themeColors.$4 || '#d1d5db'
-                              }
-                            />
-                          </LinkStyled>
-                        )}
-                    </Div>
-                  )
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>

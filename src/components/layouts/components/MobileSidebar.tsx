@@ -9,14 +9,12 @@
  */
 
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { X } from 'react-feather';
-import { useColorScheme } from '$app/common/colors';
-import { useReactSettings } from '$app/common/hooks/useReactSettings';
+import { useTranslation } from 'react-i18next';
 import { CompanySwitcher } from '$app/components/CompanySwitcher';
 import { HelpSidebarIcons } from '$app/components/HelpSidebarIcons';
-import { NavigationItem } from './DesktopSidebar';
-import { SidebarItem } from './SidebarItem';
+import { NavigationItem, SidebarNavigation } from './DesktopSidebar';
 
 interface Props {
   navigation: NavigationItem[];
@@ -24,86 +22,90 @@ interface Props {
   setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+/**
+ * Gaveta de navegação (≤ 860 px). O Dialog do Headless UI fornece
+ * aria-modal, contenção de foco, Escape, clique fora e devolução do foco ao
+ * botão que abriu a gaveta. O fundo fica inerte enquanto aberta.
+ */
 export function MobileSidebar(props: Props) {
-  const colors = useColorScheme();
-  const reactSettings = useReactSettings();
+  const [t] = useTranslation();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  const isMiniSidebar = Boolean(reactSettings.show_mini_sidebar);
+  useEffect(() => {
+    if (props.sidebarOpen) setIsNavigating(false);
+  }, [props.sidebarOpen]);
+
+  const close = () => props.setSidebarOpen(false);
+  const closeForNavigation = () => {
+    setIsNavigating(true);
+    close();
+  };
+
+  // A protected navigation opens another Dialog. Remove this focus trap in
+  // the same commit rather than keeping it alive for the leave animation.
+  if (isNavigating && !props.sidebarOpen) return null;
 
   return (
     <Transition.Root show={props.sidebarOpen} as={Fragment}>
       <Dialog
         as="div"
-        className="fixed inset-0 flex z-40 md:hidden"
-        onClose={props.setSidebarOpen}
-        style={{ width: isMiniSidebar ? '4rem' : '19.4rem' }}
+        className="ab-drawer-root fixed inset-0 z-40 flex"
+        onClose={close}
+        initialFocus={closeButtonRef}
       >
         <Transition.Child
           as={Fragment}
-          enter="transition-opacity ease-linear duration-300"
+          enter="transition-opacity ease-linear duration-200 motion-reduce:transition-none"
           enterFrom="opacity-0"
           enterTo="opacity-100"
-          leave="transition-opacity ease-linear duration-300"
+          leave="transition-opacity ease-linear duration-200 motion-reduce:transition-none"
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <Dialog.Overlay className="fixed inset-0 bg-gray-600 bg-opacity-75" />
+          <div className="ab-drawer-overlay" aria-hidden="true" />
         </Transition.Child>
+
         <Transition.Child
           as={Fragment}
-          enter="transition ease-in-out duration-300"
+          enter="transition ease-out duration-200 motion-reduce:transition-none"
           enterFrom="-translate-x-full"
           enterTo="translate-x-0"
-          leave="transition ease-in-out duration-300"
+          leave="transition ease-in duration-150 motion-reduce:transition-none"
           leaveFrom="translate-x-0"
           leaveTo="-translate-x-full"
         >
-          <div
-            className="relative flex-1 flex flex-col max-w-xs w-full px-3"
-            style={{ backgroundColor: colors.$14 }}
-          >
-            <Transition.Child
-              as={Fragment}
-              enter="ease-in-out duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="ease-in-out duration-300"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <div className="absolute top-0 right-0 -mr-12 pt-2">
-                <button
-                  type="button"
-                  className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-                  onClick={() => props.setSidebarOpen(false)}
-                >
-                  <span className="sr-only">Close sidebar</span>
-                  <X className="text-white" />
-                </button>
-              </div>
-            </Transition.Child>
+          <Dialog.Panel className="ab-drawer-panel">
+            <Dialog.Title className="sr-only">{t('menu')}</Dialog.Title>
 
-            <div
-              className="flex-shrink-0 flex items-center px-0 md:px-4 py-3 border-b h-16 justify-center border-gray-600"
-              style={{ backgroundColor: colors.$14, color: colors.$3 }}
-            >
-              <CompanySwitcher />
+            <div className="ab-drawer-head">
+              <div className="min-w-0 flex-1">
+                <CompanySwitcher variant="drawer" />
+              </div>
+
+              <button
+                ref={closeButtonRef}
+                type="button"
+                className="ab-icon-btn"
+                style={{ width: 44, height: 44 }}
+                onClick={close}
+                aria-label={t('close') as string}
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
             </div>
 
-            <div className="flex flex-col flex-1 h-0 overflow-y-auto mt-4">
-              <nav className="flex-1 space-y-1">
-                {props.navigation.map((item, index) => (
-                  <SidebarItem key={index} item={item} />
-                ))}
-              </nav>
+            <SidebarNavigation
+              navigation={props.navigation}
+              mini={false}
+              onNavigate={closeForNavigation}
+            />
 
+            <div className="ab-side-foot">
               <HelpSidebarIcons mobileNavbar />
             </div>
-          </div>
+          </Dialog.Panel>
         </Transition.Child>
-        <div className="flex-shrink-0 w-14" aria-hidden="true">
-          {/* Dummy element to force sidebar to shrink to fit close icon */}
-        </div>
       </Dialog>
     </Transition.Root>
   );

@@ -8,6 +8,7 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import '$app/pages/allberto-entities.css';
 import { useTitle } from '$app/common/hooks/useTitle';
 import { Page } from '$app/components/Breadcrumbs';
 import { DataTable } from '$app/components/DataTable';
@@ -109,49 +110,54 @@ export default function Clients() {
 
   return (
     <Default breadcrumbs={pages} title={t('clients')} docsLink="en/clients">
-      <DataTable
-        resource="client"
-        endpoint={`/api/v1/clients?include=group_settings${
-          shouldShowTagFilter ? ',tags' : ''
-        }&sort=id|desc${shouldShowTagFilter ? '' : '&tag_ids='}`}
-        bulkRoute="/api/v1/clients/bulk"
-        columns={columns}
-        linkToCreate="/clients/create"
-        linkToEdit="/clients/:id/edit"
-        withResourcefulActions
-        customActions={actions}
-        bottomActionsKeys={['purge']}
-        customBulkActions={customBulkActions}
-        filterColumns={shouldShowTagFilter ? filterColumns : undefined}
-        rightSide={
-          <div className="flex items-center space-x-2">
-            <DataTableColumnsPicker
-              table="client"
-              columns={clientColumns as unknown as string[]}
-              defaultColumns={defaultColumns}
-            />
+      <section
+        className="allberto-entity-list allberto-entity-clients"
+        aria-label={t('clients')}
+      >
+        <DataTable
+          resource="client"
+          endpoint={`/api/v1/clients?include=group_settings${
+            shouldShowTagFilter ? ',tags' : ''
+          }&sort=id|desc${shouldShowTagFilter ? '' : '&tag_ids='}`}
+          bulkRoute="/api/v1/clients/bulk"
+          columns={columns}
+          linkToCreate="/clients/create"
+          linkToEdit="/clients/:id/edit"
+          withResourcefulActions
+          customActions={actions}
+          bottomActionsKeys={['purge']}
+          customBulkActions={customBulkActions}
+          filterColumns={shouldShowTagFilter ? filterColumns : undefined}
+          rightSide={
+            <div className="flex items-center space-x-2">
+              <DataTableColumnsPicker
+                table="client"
+                columns={clientColumns as unknown as string[]}
+                defaultColumns={defaultColumns}
+              />
 
-            <Guard
-              type="component"
-              guards={[
-                or(permission('create_client'), permission('edit_client')),
-              ]}
-              component={<ImportButton route="/clients/import" />}
-            />
-          </div>
-        }
-        linkToCreateGuards={[permission('create_client')]}
-        hideEditableOptions={!hasPermission('edit_client')}
-        onTableRowClick={(client) => {
-          setSliderClientId(client.id);
-          setClientSliderVisibility(true);
-        }}
-        enableSavingFilterPreference
-        dateRangeColumns={[
-          { column: 'created_at', queryParameterKey: 'created_between' },
-        ]}
-        enableSavingLatestDataForNavigation
-      />
+              <Guard
+                type="component"
+                guards={[
+                  or(permission('create_client'), permission('edit_client')),
+                ]}
+                component={<ImportButton route="/clients/import" />}
+              />
+            </div>
+          }
+          linkToCreateGuards={[permission('create_client')]}
+          hideEditableOptions={!hasPermission('edit_client')}
+          onTableRowClick={(client) => {
+            setSliderClientId(client.id);
+            setClientSliderVisibility(true);
+          }}
+          enableSavingFilterPreference
+          dateRangeColumns={[
+            { column: 'created_at', queryParameterKey: 'created_between' },
+          ]}
+          enableSavingLatestDataForNavigation
+        />
+      </section>
 
       {!disableNavigation('client', clientSlider) && <ClientSlider />}
 

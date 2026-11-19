@@ -12,7 +12,7 @@ import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '$app/common/colors';
 import { route } from '$app/common/helpers/route';
-import { useFormatMoney } from '$app/common/hooks/money/useFormatMoney';
+import { useDashboardFormatMoney } from '$app/pages/dashboard/hooks/useDashboardFormatMoney';
 import { useDisableNavigation } from '$app/common/hooks/useDisableNavigation';
 import { Quote } from '$app/common/interfaces/quote';
 import { Badge } from '$app/components/Badge';
@@ -25,7 +25,7 @@ import { CalendarClock } from '$app/components/icons/CalendarClock';
 
 export function ExpiredQuotes() {
   const [t] = useTranslation();
-  const formatMoney = useFormatMoney();
+  const formatMoney = useDashboardFormatMoney();
 
   const colors = useColorScheme();
 

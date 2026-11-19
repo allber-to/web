@@ -22,7 +22,7 @@ import { EmailRecord as EmailRecordType } from '$app/common/interfaces/email-his
 import { GenericManyResponse } from '$app/common/interfaces/generic-many-response';
 import { Card } from '$app/components/cards';
 import { EmailRecord } from '$app/components/EmailRecord';
-import { InputField } from '$app/components/forms';
+import { Button, InputField } from '$app/components/forms';
 import Toggle from '$app/components/forms/Toggle';
 import { Search as SearchIcon } from '$app/components/icons/Search';
 import { Spinner } from '$app/components/Spinner';
@@ -50,8 +50,14 @@ export default function HistoryAndActivities() {
     EmailRecordType[]
   >([]);
 
-  const { data: activities, isLoading: isLoadingActivities } = useQuery({
-    queryKey: ['/api/v1/activities/entity', id],
+  const {
+    data: activities,
+    isLoading: isLoadingActivities,
+    isError: isActivitiesError,
+    isFetching: isFetchingActivities,
+    refetch: refetchActivities,
+  } = useQuery({
+    queryKey: ['/api/v1/activities/entity', 'client', id],
     queryFn: () =>
       request('POST', endpoint('/api/v1/activities/entity'), {
         entity: 'client',
@@ -64,9 +70,13 @@ export default function HistoryAndActivities() {
     staleTime: Infinity,
   });
 
-  const { data: emailRecords, isLoading: isLoadingEmailRecords } = useQuery<
-    EmailRecordType[]
-  >({
+  const {
+    data: emailRecords,
+    isLoading: isLoadingEmailRecords,
+    isError: isEmailError,
+    isFetching: isFetchingEmails,
+    refetch: refetchEmails,
+  } = useQuery<EmailRecordType[]>({
     queryKey: ['/api/v1/clients', id, 'emailHistory'],
     queryFn: () =>
       request(
@@ -135,12 +145,28 @@ export default function HistoryAndActivities() {
       >
         <div className="px-4 sm:px-6 pb-6 pt-4">
           {isLoadingEmailRecords && (
-            <div className="flex justify-center items-center py-8">
+            <div
+              className="flex justify-center items-center py-8"
+              role="status"
+            >
               <Spinner />
+              <span className="sr-only">{t('loading')}</span>
             </div>
           )}
 
-          {!isLoadingEmailRecords && (
+          {isEmailError && (
+            <div className="allberto-entity-error" role="alert">
+              <p>{t('error_title')}</p>
+              <Button
+                behavior="button"
+                onClick={() => refetchEmails()}
+                disabled={isFetchingEmails}
+              >
+                {t('refresh')}
+              </Button>
+            </div>
+          )}
+          {!isLoadingEmailRecords && !isEmailError && (
             <>
               <div className="flex items-center space-x-1.5 py-2 px-4 flex-1 border-b mb-4">
                 <SearchIcon color={colors.$5} size="1.6rem" />
@@ -206,7 +232,24 @@ export default function HistoryAndActivities() {
         headerStyle={{ borderColor: colors.$20 }}
       >
         <div className="px-4 sm:px-6 pb-6 pt-4">
-          {isLoadingActivities && <Spinner />}
+          {isLoadingActivities && (
+            <div role="status">
+              <Spinner />
+              <span className="sr-only">{t('loading')}</span>
+            </div>
+          )}
+          {isActivitiesError && (
+            <div className="allberto-entity-error" role="alert">
+              <p>{t('error_title')}</p>
+              <Button
+                behavior="button"
+                onClick={() => refetchActivities()}
+                disabled={isFetchingActivities}
+              >
+                {t('refresh')}
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-col overflow-y-auto max-h-96">
             {activities

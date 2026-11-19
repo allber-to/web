@@ -8,6 +8,7 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import classNames from 'classnames';
 import Tippy from '@tippyjs/react/headless';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -62,7 +63,12 @@ const Panel = styled.div`
 const COMPANY_ROW_HEIGHT = '4rem';
 const ACTION_ROW_HEIGHT = '2.75rem';
 
-export function CompanySwitcher() {
+interface Props {
+  /** Allberto: `topbar` (marinho) e `drawer` (gaveta mobile) sempre expandidos. */
+  variant?: 'topbar' | 'drawer';
+}
+
+export function CompanySwitcher(props: Props = {}) {
   const [t] = useTranslation();
 
   const dispatch = useDispatch();
@@ -85,7 +91,8 @@ export function CompanySwitcher() {
   const currentUser = useCurrentUser();
   const reactSettings = useReactSettings();
 
-  const isMiniSidebar = Boolean(reactSettings.show_mini_sidebar);
+  const isMiniSidebar =
+    !props.variant && Boolean(reactSettings.show_mini_sidebar);
 
   const isDarkMode = colors.$0 === 'dark';
   const panelBackground = isDarkMode
@@ -155,12 +162,12 @@ export function CompanySwitcher() {
       />
 
       <Tippy
-        placement="right-start"
+        placement={props.variant ? 'bottom-start' : 'right-start'}
         visible={visible}
         onClickOutside={() => setVisible(false)}
         interactive
         appendTo={() => document.body}
-        offset={[0, 24]}
+        offset={props.variant ? [0, 8] : [0, 24]}
         popperOptions={{
           modifiers: [
             {
@@ -332,6 +339,9 @@ export function CompanySwitcher() {
           type="button"
           data-cy="companyDropdown"
           onClick={() => setVisible((current) => !current)}
+          aria-expanded={visible}
+          aria-haspopup="menu"
+          aria-label={`${t('company')}: ${companyName}`}
           className={
             isMiniSidebar
               ? 'flex items-center justify-center'
@@ -349,7 +359,12 @@ export function CompanySwitcher() {
               }}
             />
           ) : (
-            <div className="flex items-center space-x-3 p-1.5 rounded-md hover:bg-gray-700 w-full min-w-0">
+            <div
+              className={classNames(
+                'flex items-center space-x-3 p-1.5 rounded-md w-full min-w-0',
+                { 'hover:bg-gray-700': !props.variant }
+              )}
+            >
               <img
                 className="rounded-full border overflow-hidden aspect-square object-cover flex-shrink-0"
                 src={logo}
@@ -360,12 +375,17 @@ export function CompanySwitcher() {
                 }}
               />
 
-              <span className="flex-1 min-w-0 block text-sm text-start truncate text-gray-200">
+              <span
+                className={classNames(
+                  'flex-1 min-w-0 block text-sm text-start truncate',
+                  { 'text-gray-200': props.variant !== 'drawer' }
+                )}
+              >
                 {companyName}
               </span>
 
               <ExpandCollapseChevron
-                color="#e5e7eb"
+                color={props.variant === 'drawer' ? 'currentColor' : '#e5e7eb'}
                 className="flex-shrink-0"
               />
             </div>

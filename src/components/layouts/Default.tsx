@@ -10,8 +10,8 @@
 
 import classNames from 'classnames';
 import { useAtomValue } from 'jotai';
-import { FormEvent, ReactElement, ReactNode, useState } from 'react';
-import { Info, Menu as MenuIcon } from 'react-feather';
+import { FormEvent, ReactElement, ReactNode, useEffect, useState } from 'react';
+import { Info } from 'react-feather';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -33,8 +33,6 @@ import {
   saveBtnAtom,
   useNavigationTopRightElement,
 } from '$app/components/layouts/common/hooks';
-import { QuickCreatePopover } from '$app/components/QuickCreatePopover';
-import { Search } from '$app/pages/dashboard/components/Search';
 import CommonProps from '../../common/interfaces/common-props.interface';
 import { ActivateCompany } from '../banners/ActivateCompany';
 import { EInvoiceCredits } from '../banners/EInvoiceCredits';
@@ -42,11 +40,11 @@ import { PriceIncreaseBanner } from '../banners/PriceIncrease';
 import { VerifyEmail } from '../banners/VerifyEmail';
 import { VerifyPhone } from '../banners/VerifyPhone';
 import { Feedback } from '../Feedback';
-import { Notifications } from '../Notifications';
 import { AccountPlanExpired } from '../banners/AccountPlanExpired';
 import { useNavigation } from './common/navigation';
 import { DesktopSidebar } from './components/DesktopSidebar';
 import { MobileSidebar } from './components/MobileSidebar';
+import { Topbar } from './components/Topbar';
 
 export interface SaveOption {
   label: string;
@@ -67,6 +65,10 @@ interface Props extends CommonProps {
   additionalSaveOptions?: SaveOption[];
   aboveMainContainer?: ReactNode;
   afterBreadcrumbs?: ReactNode;
+  /** Allberto: a página desenha o próprio cabeçalho (ex.: Painel). */
+  withoutPageTitle?: boolean;
+  /** Allberto: largura/padding da composição do Painel. */
+  contentVariant?: 'default' | 'dashboard';
 }
 
 export function Default(props: Props) {
@@ -80,7 +82,7 @@ export function Default(props: Props) {
   const companyUser = useCurrentCompanyUser();
   const reactSettings = useReactSettings();
 
-  const isMiniSidebar = Boolean(reactSettings.show_mini_sidebar);
+  const isDarkMode = Boolean(reactSettings.dark_mode);
 
   const hostedUnlock = useUnlockButtonForHosted();
   const selfHostedUnlock = useUnlockButtonForSelfHosted();
@@ -132,8 +134,26 @@ export function Default(props: Props) {
 
   const navigate = useNavigate();
 
+  // Tokens --ab-* (src/resources/css/allberto.css) seguem a preferência real.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.abTheme = isDarkMode ? 'dark' : 'light';
+    }
+  }, [isDarkMode]);
+
+  const hasPageTitle = Boolean(props.title) && !props.withoutPageTitle;
+  const hasBreadcrumbs = Boolean(props.breadcrumbs?.length);
+  const hasActions = Boolean(
+    props.topRight ||
+      props.onCancelClick ||
+      props.onSaveClick ||
+      saveBtn ||
+      navigationTopRightElement ||
+      props.navigationTopRight
+  );
+
   return (
-    <div>
+    <div className="ab-shell">
       <div className="fixed bottom-4 right-4 z-50 flex items-end flex-col-reverse space-y-4 space-y-reverse">
         <ActivateCompany />
         <VerifyEmail />
@@ -151,174 +171,151 @@ export function Default(props: Props) {
         setSidebarOpen={setSidebarOpen}
       />
 
-      <DesktopSidebar navigation={navigation} docsLink={props.docsLink} />
+      <Topbar
+        isMenuOpen={sidebarOpen}
+        onOpenMenu={() => setSidebarOpen(true)}
+        extra={
+          shouldShowUnlockButton && (
+            <button
+              type="button"
+              className="hidden sm:inline-flex items-center justify-center px-4 rounded-md text-sm font-medium text-white relative overflow-hidden"
+              style={{
+                height: '2.25rem',
+                background: '#2176FF',
+                border: '1px solid #0062ff',
+                boxShadow:
+                  '0px 1px 1px 0px #1453B82E, 0px 2px 2px 0px #1453B829, 0px 5px 3px 0px #1453B817, 0px 9px 4px 0px #1453B808, 0px 15px 4px 0px #1453B800, 0px 1px 0px 0px #FFFFFF40 inset, 0px 0px 0px 1px #0062FF',
+              }}
+              onClick={() => {
+                if (
+                  isHosted() ||
+                  import.meta.env.VITE_ENABLE_NEW_ACCOUNT_MANAGEMENT === 'true'
+                ) {
+                  return navigate('/settings/account_management');
+                }
 
-      <div
-        className={classNames('flex flex-col flex-1', {
-          'md:pl-16': isMiniSidebar,
-          'md:pl-64': !isMiniSidebar,
-        })}
-      >
-        <div
-          style={{ backgroundColor: colors.$1 }}
-          className="sticky top-0 z-10 flex-shrink-0 flex h-16 border-b shadow"
-        >
-          <button
-            type="button"
-            className="px-4 border-r border-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span className="sr-only">Open sidebar</span>
-            <MenuIcon color={colors.$3} />
-          </button>
+                preventNavigation({
+                  url: (isSelfHosted()
+                    ? import.meta.env.VITE_WHITELABEL_INVOICE_URL ||
+                      'https://invoiceninja.invoicing.co/client/subscriptions/O5xe7Rwd7r/purchase'
+                    : user?.company_user?.ninja_portal_url) as string,
+                  externalLink: true,
+                });
+              }}
+            >
+              <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
 
-          <div
-            className="flex-1 px-4 xl:px-8 flex items-center"
-            data-cy="topNavbar"
-          >
-            <div className="flex flex-1 items-center space-x-4">
-              <h2
-                style={{ color: colors.$3 }}
-                className="text-sm md:text-lg whitespace-nowrap"
-              >
-                {props.title}
-              </h2>
+              <span className="relative z-10 hidden xl:block">
+                {isSelfHosted() ? t('white_label_button') : t('unlock_pro')}
+              </span>
 
-              <QuickCreatePopover />
-              <Search />
-            </div>
+              <span className="relative z-10 xl:hidden">{t('upgrade')}</span>
+            </button>
+          )
+        }
+      />
 
-            <div className="ml-4 flex items-center md:ml-6 space-x-2 lg:space-x-3">
-              <Notifications />
+      <div className="ab-frame">
+        <DesktopSidebar navigation={navigation} docsLink={props.docsLink} />
 
-              {shouldShowUnlockButton && (
-                <button
-                  type="button"
-                  className="hidden sm:inline-flex items-center justify-center px-4 rounded-md text-sm font-medium text-white relative overflow-hidden"
-                  style={{
-                    height: '2.25rem',
-                    background: '#2176FF',
-                    border: '1px solid #0062ff',
-                    boxShadow:
-                      '0px 1px 1px 0px #1453B82E, 0px 2px 2px 0px #1453B829, 0px 5px 3px 0px #1453B817, 0px 9px 4px 0px #1453B808, 0px 15px 4px 0px #1453B800, 0px 1px 0px 0px #FFFFFF40 inset, 0px 0px 0px 1px #0062FF',
-                  }}
-                  onClick={() => {
-                    if (
-                      isHosted() ||
-                      import.meta.env.VITE_ENABLE_NEW_ACCOUNT_MANAGEMENT === 'true'
-                    ) {
-                      return navigate('/settings/account_management');
-                    }
+        <main className="ab-sheet" id="main-content">
+          {props.aboveMainContainer}
 
-                    preventNavigation({
-                      url: (isSelfHosted()
-                        ? import.meta.env.VITE_WHITELABEL_INVOICE_URL ||
-                          'https://invoiceninja.invoicing.co/client/subscriptions/O5xe7Rwd7r/purchase'
-                        : user?.company_user?.ninja_portal_url) as string,
-                      externalLink: true,
-                    });
-                  }}
-                >
-                  <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent pointer-events-none" />
+          {(hasPageTitle || hasBreadcrumbs || hasActions) && (
+            <div className="ab-pagebar">
+              <div className="flex items-center gap-3 min-w-0 flex-wrap">
+                {hasPageTitle && <h1>{props.title}</h1>}
 
-                  <span className="relative z-10 hidden xl:block">
-                    {isSelfHosted() ? t('white_label_button') : t('unlock_pro')}
-                  </span>
+                {hasBreadcrumbs && <Breadcrumbs pages={props.breadcrumbs} />}
 
-                  <span className="relative z-10 xl:hidden">
-                    {t('upgrade')}
-                  </span>
-                </button>
-              )}
+                {props.afterBreadcrumbs}
+              </div>
 
-              {props.onCancelClick && (
-                <Button onClick={props.onCancelClick} type="secondary">
-                  {t('cancel')}
-                </Button>
-              )}
+              {hasActions && (
+                <div className="ab-pagebar-actions">
+                  {props.topRight}
 
-              {(Boolean(props.onSaveClick) || saveBtn) && (
-                <div>
-                  {!props.additionalSaveOptions && (
-                    <Button
-                      onClick={saveBtn?.onClick || props.onSaveClick}
-                      disabled={
-                        saveBtn?.disableSaveButton || props.disableSaveButton
-                      }
-                      disableWithoutIcon
-                    >
-                      {(saveBtn?.label || props.saveButtonLabel) ?? t('save')}
+                  {props.onCancelClick && (
+                    <Button onClick={props.onCancelClick} type="secondary">
+                      {t('cancel')}
                     </Button>
                   )}
 
-                  {props.additionalSaveOptions && (
-                    <div className="flex">
-                      <Button
-                        className="rounded-br-none rounded-tr-none px-3"
-                        onClick={saveBtn?.onClick || props.onSaveClick}
-                        disabled={
-                          saveBtn?.disableSaveButton || props.disableSaveButton
-                        }
-                        disableWithoutIcon
-                      >
-                        {(saveBtn?.label || props.saveButtonLabel) ?? t('save')}
-                      </Button>
+                  {(Boolean(props.onSaveClick) || saveBtn) && (
+                    <div>
+                      {!props.additionalSaveOptions && (
+                        <Button
+                          onClick={saveBtn?.onClick || props.onSaveClick}
+                          disabled={
+                            saveBtn?.disableSaveButton ||
+                            props.disableSaveButton
+                          }
+                          disableWithoutIcon
+                        >
+                          {(saveBtn?.label || props.saveButtonLabel) ??
+                            t('save')}
+                        </Button>
+                      )}
 
-                      <Dropdown
-                        className="rounded-bl-none rounded-tl-none h-full px-1 border-l-1 border-y-0 border-r-0"
-                        cardActions
-                        disabled={
-                          saveBtn?.disableSaveButton || props.disableSaveButton
-                        }
-                        labelButtonBorderColor={colors.$1}
-                      >
-                        {props.additionalSaveOptions.map((option, index) => (
-                          <DropdownElement
-                            key={index}
-                            icon={option.icon}
-                            disabled={props.disableSaveButton}
-                            onClick={option.onClick}
+                      {props.additionalSaveOptions && (
+                        <div className="flex">
+                          <Button
+                            className="rounded-br-none rounded-tr-none px-3"
+                            onClick={saveBtn?.onClick || props.onSaveClick}
+                            disabled={
+                              saveBtn?.disableSaveButton ||
+                              props.disableSaveButton
+                            }
+                            disableWithoutIcon
                           >
-                            {option.label}
-                          </DropdownElement>
-                        ))}
-                      </Dropdown>
+                            {(saveBtn?.label || props.saveButtonLabel) ??
+                              t('save')}
+                          </Button>
+
+                          <Dropdown
+                            className="rounded-bl-none rounded-tl-none h-full px-1 border-l-1 border-y-0 border-r-0"
+                            cardActions
+                            disabled={
+                              saveBtn?.disableSaveButton ||
+                              props.disableSaveButton
+                            }
+                            labelButtonBorderColor={colors.$1}
+                          >
+                            {props.additionalSaveOptions.map(
+                              (option, index) => (
+                                <DropdownElement
+                                  key={index}
+                                  icon={option.icon}
+                                  disabled={props.disableSaveButton}
+                                  onClick={option.onClick}
+                                >
+                                  {option.label}
+                                </DropdownElement>
+                              )
+                            )}
+                          </Dropdown>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(navigationTopRightElement || props.navigationTopRight) && (
+                    <div className="flex space-x-3 items-center">
+                      {navigationTopRightElement?.element ||
+                        props.navigationTopRight}
                     </div>
                   )}
                 </div>
               )}
-
-              {(navigationTopRightElement || props.navigationTopRight) && (
-                <div className="flex space-x-3 items-center">
-                  {navigationTopRightElement?.element ||
-                    props.navigationTopRight}
-                </div>
-              )}
             </div>
-          </div>
-        </div>
-
-        {props.aboveMainContainer}
-
-        <main className="flex-1">
-          {(props.breadcrumbs || props.topRight || props.afterBreadcrumbs) &&
-            props.breadcrumbs.length > 0 && (
-              <div className="pt-4 px-4 md:px-6 md:pt-6 dark:text-gray-100 flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
-                <div className="flex items-center w-full">
-                  {props.breadcrumbs && (
-                    <Breadcrumbs pages={props.breadcrumbs} />
-                  )}
-
-                  {props.afterBreadcrumbs}
-                </div>
-
-                {props.topRight && <div>{props.topRight}</div>}
-              </div>
-            )}
+          )}
 
           <div
-            style={{ color: colors.$3, backgroundColor: colors.$23 }}
-            className="p-4 xl:px-6 dark:text-gray-100"
+            style={{ color: colors.$3 }}
+            className={classNames({
+              'ab-content': props.contentVariant !== 'dashboard',
+              'ab-content--dashboard': props.contentVariant === 'dashboard',
+            })}
           >
             {props.children}
           </div>

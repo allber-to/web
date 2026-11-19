@@ -18,6 +18,10 @@ import { ActivityRecord } from '$app/common/interfaces/activity-record';
 import { Card } from '$app/components/cards';
 import { NonClickableElement } from '$app/components/cards/NonClickableElement';
 import { Spinner } from '$app/components/Spinner';
+import {
+  requireResponseData,
+  shouldRetryDashboardQuery,
+} from '../helpers/allberto-http';
 import { useGenerateActivityElement } from '../hooks/useGenerateActivityElement';
 
 export function Activity() {
@@ -27,7 +31,17 @@ export function Activity() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['/api/v1/activities'],
-    queryFn: () => request('GET', endpoint('/api/v1/activities?reactv2')),
+    queryFn: () =>
+      request('GET', endpoint('/api/v1/activities?reactv2')).then(
+        (response) => {
+          // 403/404 tratados pelo interceptor resolvem `undefined`: é erro,
+          // não lista vazia.
+          requireResponseData(response);
+
+          return response;
+        }
+      ),
+    retry: shouldRetryDashboardQuery,
     staleTime: 300000,
   });
 
@@ -59,6 +73,12 @@ export function Activity() {
           className="flex flex-col overflow-y-auto px-4"
           style={{ height: '18.9rem' }}
         >
+          {data?.data.data && data.data.data.length === 0 && (
+            <p className="text-sm py-4" style={{ color: colors.$17 }}>
+              {t('no_records_found')}
+            </p>
+          )}
+
           {data?.data.data &&
             data.data.data.map((record: ActivityRecord, index: number) => (
               <React.Fragment key={index}>

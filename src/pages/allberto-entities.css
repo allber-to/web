@@ -1,0 +1,348 @@
+/* Allberto entity screens. Shared controls retain their existing behavior. */
+.allberto-entity-list,
+.allberto-entity-detail {
+  min-width: 0;
+  color: var(--ab-ink, #18181b);
+  font-size: 14px;
+  line-height: 1.45;
+  letter-spacing: -0.005em;
+}
+
+.allberto-entity-list [data-cy="dataTable"] {
+  background: var(--ab-surface, #fff);
+  border: 1px solid var(--ab-line, #e4e4e7);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 var(--ab-line, #e4e4e7);
+  min-width: 0;
+}
+
+.allberto-entity-list table {
+  font-variant-numeric: tabular-nums;
+}
+
+.allberto-entity-list th {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.allberto-entity-list td {
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.allberto-entity-client-name {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.allberto-entity-client-name > a,
+.allberto-entity-client-name > span:first-child {
+  font-weight: 600;
+}
+
+.allberto-entity-secondary {
+  font-size: 12px;
+  color: var(--ab-muted, #71717a);
+  font-weight: 400;
+}
+
+.allberto-entity-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.allberto-entity-record-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  color: var(--ab-muted, #71717a);
+  font-size: 13px;
+}
+
+.allberto-entity-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.allberto-entity-metric {
+  min-width: 0;
+  padding: 20px;
+  background: var(--ab-surface, #fff);
+  border: 1px solid var(--ab-line, #e4e4e7);
+  border-radius: 12px;
+  box-shadow: 0 1px 0 var(--ab-line, #e4e4e7);
+}
+
+.allberto-entity-metric dt {
+  color: var(--ab-muted, #71717a);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.allberto-entity-metric dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.allberto-entity-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.allberto-entity-detail-main,
+.allberto-entity-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.allberto-entity-sidebar > div {
+  min-width: 0;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+}
+
+.allberto-entity-sidebar .h-44 {
+  height: auto;
+  max-height: 360px;
+}
+
+.allberto-entity-sidebar :is(dt, dd) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.allberto-entity-sidebar :is(h3, .text-xl) {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.allberto-entity-overview-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.allberto-entity-overview-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.allberto-entity-overview-amount > strong {
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.allberto-entity-overview-hero p {
+  margin: 8px 0 0;
+  color: var(--ab-muted, #71717a);
+  font-size: 13px;
+}
+
+.allberto-entity-items {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.allberto-entity-items th {
+  background: var(--ab-side, #f1f1ef);
+  color: var(--ab-muted, #71717a);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.allberto-entity-items :is(th, td) {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--ab-line, #e4e4e7);
+  vertical-align: top;
+}
+
+.allberto-entity-items :is(th, td):not(:first-child) {
+  text-align: right;
+}
+
+.allberto-entity-items td:first-child {
+  width: 65%;
+  overflow-wrap: anywhere;
+}
+
+.allberto-entity-item-notes {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ab-muted, #71717a);
+  overflow-wrap: anywhere;
+}
+
+.allberto-entity-item-notes :is(img, table) {
+  max-width: 100%;
+}
+
+.allberto-entity-summary,
+.allberto-entity-facts {
+  margin: 0;
+  padding: 16px 18px;
+}
+
+.allberto-entity-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 7px 0;
+}
+
+.allberto-entity-summary dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.allberto-entity-facts > div + div {
+  margin-top: 18px;
+}
+
+.allberto-entity-facts dt {
+  color: var(--ab-muted, #71717a);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.allberto-entity-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.allberto-entity-loading,
+.allberto-entity-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  background: var(--ab-surface, #fff);
+  border: 1px solid var(--ab-line, #e4e4e7);
+  border-radius: 12px;
+}
+
+.allberto-entity-error {
+  flex-wrap: wrap;
+  color: var(--ab-danger, #dc2626);
+}
+
+.allberto-entity-empty {
+  padding: 24px 18px;
+  color: var(--ab-muted, #71717a);
+  font-size: 13px;
+}
+
+@media (max-width: 1180px) {
+  .allberto-entity-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .allberto-entity-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .allberto-entity-detail {
+    gap: 28px;
+  }
+  .allberto-entity-metric {
+    padding: 16px;
+  }
+  .allberto-entity-metric dd {
+    font-size: 22px;
+  }
+  .allberto-entity-overview-amount > strong {
+    font-size: 28px;
+  }
+  .allberto-entity-items :is(th, td) {
+    padding: 12px;
+  }
+  .allberto-entity-items td:first-child {
+    width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .allberto-entity-metric dd {
+    font-size: 20px;
+  }
+}
+
+.allberto-entity-client-history {
+  margin-top: 24px;
+}
+
+.allberto-entity-activity-row + .allberto-entity-activity-row {
+  border-top: 1px solid var(--ab-line, #e4e4e7);
+  border-radius: 0;
+}
+
+.allberto-entity-list :is(a, button, input, select):focus-visible,
+.allberto-entity-detail :is(a, button, input, select):focus-visible {
+  outline: 2px solid var(--ab-accent, #545dff);
+  outline-offset: 2px;
+}
+
+.allberto-entity-detail-grid:has(> .allberto-entity-sidebar:empty) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.allberto-entity-sidebar:empty {
+  display: none;
+}
+
+.allberto-entity-sidebar > .allberto-entity-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.allberto-entity-sidebar .allberto-entity-metric {
+  padding: 16px;
+}
+
+.allberto-entity-sidebar .allberto-entity-metric dd {
+  font-size: 20px;
+}
+
+/* Embedded history occupies the remaining detail column, not the viewport. */
+.allberto-entity-client-history > div {
+  flex-direction: column;
+}
+.allberto-entity-client-history > div > * {
+  width: 100%;
+}

@@ -16,6 +16,7 @@ export const keys = {
     dependencies: [
       '/api/v1/clients',
       '/api/v1/charts/totals_v2',
+      '/api/v1/charts/analytics_totals',
       '/api/v1/charts/chart_summary_v2',
       '/api/v1/charts/project_burnup',
       '/api/v1/charts/project_analytics',
@@ -50,7 +51,11 @@ export const keys = {
   },
   credits: {
     path: '/api/v1/credits',
-    dependencies: ['/api/v1/clients', '/api/v1/documents'],
+    dependencies: [
+      '/api/v1/clients',
+      '/api/v1/documents',
+      '/api/v1/charts/analytics_totals',
+    ],
   },
   expense_categories: {
     path: '/api/v1/expense_categories',
@@ -83,6 +88,7 @@ export const keys = {
       '/api/v1/invoices',
       '/api/v1/clients',
       '/api/v1/charts/totals_v2',
+      '/api/v1/charts/analytics_totals',
       '/api/v1/charts/chart_summary_v2',
       '/api/v1/charts/project_burnup',
       '/api/v1/charts/project_analytics',
@@ -190,6 +196,7 @@ export const keys = {
       '/api/v1/recurring_expenses',
       '/api/v1/tasks',
       '/api/v1/charts/totals_v2',
+      '/api/v1/charts/analytics_totals',
       '/api/v1/charts/chart_summary_v2',
       '/api/v1/documents',
       '/api/v1/clients/show_settings',
@@ -220,6 +227,7 @@ export const keys = {
     path: '/api/v1/recurring_invoices',
     dependencies: [
       '/api/v1/clients',
+      '/api/v1/charts/analytics_totals',
       '/api/v1/activities/entity',
       '/api/v1/documents',
     ],
