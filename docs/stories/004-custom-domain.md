@@ -144,3 +144,7 @@ O operador confirmou na Visão Geral da zona Cloudflare **Configuração de DNS:
 
 
 O [CTO aceitou P1, P2, P3 e P5](../reviews/fable-custom-domain-runtime.md), mantendo P4/D8 não executado. Os detalhes ausentes no JSON de preflight foram completados por uma nova leitura (200, URL/origem/método/cabeçalhos explícitos); API própria também relida com raiz 200/TLS válido/versão 5.13.49. A asserção original de zero redirects do painel foi explicitada no arquivo de evidência. Nenhuma mudança de runtime resultou dessa precisão documental.
+
+## Continuidade após a troca de marca
+
+A [story 005](005-auth-branding.md) publicou a marca Allberto no login, confirmada visualmente com recarga completa e conexão segura. Essa observação confirma que o aplicativo real carrega em `painel.allber.to`. A tentativa de preencher e-mail foi interrompida quando a reconciliação encontrou o seletor de perfis do Chrome, antes de senha/submit. P4/D8 permanece parcial: tela e TLS observados, autenticação e navegação autenticada ainda não concluídas. O [handoff dessa etapa](../handoffs/auth-branding-live.md) registra o limite; não houve reset, novo dado ou nova mudança DNS/backend. Chrome liberado ao encerrar.

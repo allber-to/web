@@ -87,3 +87,32 @@ Revisão curta, por leitura e hash local. Não repeti build, chamadas à API nem
 - CI do commit com o pin.
 - O resultado em `https://painel.allber.to/login`, que depende do deploy.
 - O login real no navegador, pendente desde a story 004.
+
+## Suplemento final — publicação
+
+**Story 005 aceita como entregue: a marca Allberto está publicada na tela de login de `painel.allber.to`.** O login real fica fora deste aceite e continua pendente na story 004.
+
+Revisão por leitura do `live-check.json` e do handoff `docs/handoffs/auth-branding-live.md`. Não repeti build, chamadas à API nem navegador. Para comparar com o registro ao vivo, calculei localmente o hash de quatro arquivos do pacote que já estava em disco.
+
+| Ponto | Resultado | Base |
+| --- | --- | --- |
+| Publicação | **Aceito** | PR 9 mesclado em `9441e4163`, com CI verde no commit do pin. Um único deploy do web, 6 segundos. |
+| Versão servida | **Aceito** | `version.json` em `painel.allber.to` traz `a0fe5f2e…5f02`, de 18:49:57 UTC, a fonte que revisei. |
+| Arquivos servidos | **Aceito** | Sete respostas 200, resolução e certificado normais, sem redirecionamento. `version.json`, o HTML de `/login`, o JavaScript e o CSS da aplicação têm os mesmos hashes do pacote local. |
+| Marca na página real | **Aceito** | Captura do operador depois de recarga completa: "allberto" em preto com o símbolo violeta, acima do formulário, sem contorno permanente. O link é lido como "allberto". Formulário preservado e conexão indicada como segura. |
+| Backend, ambiente, DNS | **Sem mudança** | Só o serviço web foi reimplantado. |
+
+### O que fica de fora do aceite
+
+- **Tema escuro e foco por teclado na página publicada.** O operador não alterou preferências nem exercitou o Tab. Para esses dois pontos valem a leitura do código e a verificação local do Astra, não uma observação ao vivo.
+- **Cadastro e recuperação de senha publicados.** Só a tela de login foi vista. As três usam o mesmo componente, e o arquivo servido é idêntico ao do pacote.
+- **Login real (P4/D8 da story 004).** Ao começar a digitar o e-mail, o controle foi interrompido, e a leitura seguinte mostrou o seletor de perfis do Chrome. O operador parou: nenhuma senha digitada, nenhum envio. Não é falha do aplicativo nem aprovação.
+- **Saúde do container.** Não houve inspeção de reinícios ou OOM depois deste deploy; há o `healthz` 200 e a memória mostrada pelo painel.
+
+### Observações
+
+- A captura ao vivo mostra o formulário em inglês ("Login", "Email address", "Continue"), enquanto a verificação local forçava português. É o idioma da tela antes do login, não tocado por esta mudança. Fica registrado caso o proprietário queira a tela de entrada em português.
+- A captura é do tema claro, então a cor do texto de versão no tema escuro, que anotei antes, segue sem conferência ao vivo.
+- Os itens preexistentes continuam registrados e fora do escopo, por decisão do coordenador: página "não encontrado" com o logo antigo, links do upstream no cadastro e contraste do asterisco no tema claro.
+
+Nenhuma nova implantação é necessária para esta story.

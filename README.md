@@ -46,6 +46,7 @@ Execute novamente `up -d` para retomar. Pare o ambiente quando não estiver em u
 O [Allberto no EasyPanel](https://painel.allber.to) usa o subdomínio administrativo `painel.allber.to`, com [API separada](https://api.allber.to) e nenhuma porta do projeto publicada diretamente. O frontend é pré-compilado fora da VPS e instalado por pacote com SHA-256. Artefatos: `deploy/easypanel/`. A [arquitetura](docs/architecture-easypanel.md), o [handoff operacional](docs/handoffs/astra-easypanel.md) e a [story 003](docs/stories/003-easypanel-deploy.md) registram configuração, verificações e limites. A [story 004](docs/stories/004-custom-domain.md) documenta DNS na Cloudflare, origem do portal, verificações e reversão; os hosts temporários foram preservados. `allber.to` e `www` ficam destinados ao futuro site público e servem como aliases de transição enquanto esse site não é publicado. Não reutilize credenciais ou dados do backend local nesse ambiente.
 
 - [Briefing e critérios de aceite](docs/project-brief.md)
+- [Marca Allberto na autenticação e publicação](docs/stories/005-auth-branding.md)
 - [Plano, progresso e verificações](docs/stories/001-github-frontend.md)
 - [Integração com backend local](docs/stories/002-local-backend.md)
 - [Validação e limites da entrega](docs/validation.md)
