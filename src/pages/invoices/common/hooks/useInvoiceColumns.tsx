@@ -67,13 +67,13 @@ export function resourceViewedAt(resource: Invoice | Credit) {
 }
 
 export const defaultColumns: string[] = [
-  'status',
   'number',
   'client',
-  'amount',
-  'balance',
   'date',
   'due_date',
+  'amount',
+  'balance',
+  'status',
 ];
 
 export function useAllInvoiceColumns() {
@@ -226,7 +226,7 @@ export function useInvoiceColumns(): DataTableColumns<Invoice> {
       label: t('number'),
       format: (value, invoice) => (
         <DynamicLink
-          to={route(invoicePaths.edit, { id: invoice.id })}
+          to={route('/invoices/:id', { id: invoice.id })}
           renderSpan={disableNavigation('invoice', invoice)}
         >
           {value}

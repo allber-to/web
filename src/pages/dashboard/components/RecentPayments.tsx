@@ -14,7 +14,7 @@ import { useColorScheme } from '$app/common/colors';
 import { useInvoiceEditorPaths } from '$app/common/hooks/useInvoiceEditor';
 import { date } from '$app/common/helpers';
 import { route } from '$app/common/helpers/route';
-import { useFormatMoney } from '$app/common/hooks/money/useFormatMoney';
+import { useDashboardFormatMoney } from '$app/pages/dashboard/hooks/useDashboardFormatMoney';
 import { useCurrentCompanyDateFormats } from '$app/common/hooks/useCurrentCompanyDateFormats';
 import { useDisableNavigation } from '$app/common/hooks/useDisableNavigation';
 import { Payment } from '$app/common/interfaces/payment';
@@ -29,7 +29,7 @@ import { CreditCardChecked } from '$app/components/icons/CreditCardChecked';
 export function RecentPayments() {
   const invoicePaths = useInvoiceEditorPaths();
   const [t] = useTranslation();
-  const formatMoney = useFormatMoney();
+  const formatMoney = useDashboardFormatMoney();
 
   const colors = useColorScheme();
 

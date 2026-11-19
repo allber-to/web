@@ -12,7 +12,7 @@ import { usePreventNavigation } from '$app/common/hooks/usePreventNavigation';
 import { useReactSettings } from '$app/common/hooks/useReactSettings';
 import { Icon } from './icons/Icon';
 
-const Div = styled.div`
+const Div = styled.button`
   &:hover {
     background-color: ${(props) => props.theme.hoverColor};
     font-weight: 500;
@@ -31,7 +31,14 @@ const StyledPopoverButton = styled(Popover.Button)`
   }
 `;
 
-export function QuickCreatePopover() {
+interface Props {
+  /** `topbar`: botão "Novo" da shell Allberto, painel alinhado à direita. */
+  variant?: 'topbar';
+}
+
+export function QuickCreatePopover(props: Props = {}) {
+  const isTopbar = props.variant === 'topbar';
+
   const [t] = useTranslation();
 
   const preventNavigation = usePreventNavigation();
@@ -48,17 +55,35 @@ export function QuickCreatePopover() {
     <Popover className="relative">
       {() => (
         <>
-          <StyledPopoverButton
-            data-cy="quickPopoverButton"
-            className="flex items-center justify-center h-10 w-10 rounded-lg border shadow-sm focus:outline-none"
-            style={{ height: '2.3rem', borderColor: colors.$5 }}
-            theme={{
-              hoverBackgroundColor: colors.$4,
-              backgroundColor: colors.$1,
-            }}
-          >
-            <Icon element={BiPlus} size={23} style={{ color: colors.$3 }} />
-          </StyledPopoverButton>
+          {isTopbar ? (
+            <Popover.Button
+              data-cy="quickPopoverButton"
+              className="ab-tb-btn"
+              style={{
+                width: 'auto',
+                padding: '0 12px',
+                borderRadius: 999,
+                fontSize: 12.5,
+                fontWeight: 600,
+              }}
+            >
+              <Icon element={BiPlus} size={16} />
+              <span>{t('new')}</span>
+            </Popover.Button>
+          ) : (
+            <StyledPopoverButton
+              data-cy="quickPopoverButton"
+              aria-label={t('new')}
+              className="flex items-center justify-center h-10 w-10 rounded-lg border shadow-sm focus:outline-none"
+              style={{ height: '2.3rem', borderColor: colors.$5 }}
+              theme={{
+                hoverBackgroundColor: colors.$4,
+                backgroundColor: colors.$1,
+              }}
+            >
+              <Icon element={BiPlus} size={23} style={{ color: colors.$3 }} />
+            </StyledPopoverButton>
+          )}
 
           <Transition
             as={Fragment}
@@ -73,14 +98,15 @@ export function QuickCreatePopover() {
               className={classNames(
                 'absolute z-10 mt-1.5 w-screen max-w-md -translate-x-1/2 transform px-2',
                 {
+                  'right-0 max-w-[min(48rem,calc(100vw-2rem))]': isTopbar,
                   'left-14 md:left-0 md:max-w-2xl lg:max-w-3xl lg:left-full':
-                    isHosted() && !isMiniSidebar,
+                    !isTopbar && isHosted() && !isMiniSidebar,
                   'left-14 md:left-56 md:max-w-2xl lg:max-w-3xl':
-                    isHosted() && isMiniSidebar,
+                    !isTopbar && isHosted() && isMiniSidebar,
                   'left-14 md:left-8 lg:max-w-xl lg:left-full':
-                    isSelfHosted() && !isMiniSidebar,
+                    !isTopbar && isSelfHosted() && !isMiniSidebar,
                   'left-14 md:left-8 lg:max-w-xl lg:left-28':
-                    isSelfHosted() && isMiniSidebar,
+                    !isTopbar && isSelfHosted() && isMiniSidebar,
                 }
               )}
             >
@@ -127,7 +153,8 @@ export function QuickCreatePopover() {
                                       hoverTextColor: colors.$3,
                                     }}
                                     key={action.key}
-                                    className="flex items-center space-x-2 py-2 pl-2 cursor-pointer rounded"
+                                    type="button"
+                                    className="flex items-center space-x-2 py-2 pl-2 cursor-pointer rounded w-full text-left"
                                     onClick={() =>
                                       preventNavigation({
                                         url: action.url,

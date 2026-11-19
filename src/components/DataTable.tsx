@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { MdArchive, MdDelete, MdEdit, MdRestore } from 'react-icons/md';
 import { useDebounce } from 'react-use';
 import { emitter } from '$app';
+import { StatusTabs } from '$app/components/datatables/StatusTabs';
 import {
   fullTableLatestDataAtom,
   invalidationQueryAtom,
@@ -164,6 +165,11 @@ interface Props<T> extends CommonProps {
   customBulkActions?: CustomBulkAction<T>[];
   customFilters?: SelectOption[];
   customFilterPlaceholder?: string;
+  /**
+   * Allberto: atalhos de status sobre `customFilters`. Ativado também
+   * automaticamente dentro de `.allberto-entity-list`.
+   */
+  withStatusTabs?: boolean;
   defaultCustomFilterValues?: string[];
   withoutActions?: boolean;
   withoutPagination?: boolean;
@@ -961,8 +967,22 @@ export function DataTable<T extends object>(props: Props<T>) {
     onSelectedResourcesChange?.(selectedResources);
   }, [selectedResources]);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isInsideEntityList, setIsInsideEntityList] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsInsideEntityList(
+      Boolean(containerRef.current?.closest('.allberto-entity-list'))
+    );
+  }, []);
+
+  const showStatusTabs =
+    !props.withoutActions &&
+    Boolean(customFilters?.length) &&
+    (props.withStatusTabs ?? isInsideEntityList);
+
   return (
-    <div data-cy="dataTable">
+    <div data-cy="dataTable" ref={containerRef} className="ab-datatable">
       {!props.withoutActions && (
         <Actions
           filter={filter}
@@ -1084,6 +1104,14 @@ export function DataTable<T extends object>(props: Props<T>) {
         </Actions>
       )}
 
+      {showStatusTabs && customFilters && (
+        <StatusTabs
+          customFilters={customFilters}
+          customFilter={customFilter}
+          onChange={setCustomFilterIfChanged}
+        />
+      )}
+
       {currentData.length === 0 && !isLoading && !isFetching && emptyState ? (
         emptyState
       ) : (
@@ -1188,7 +1216,11 @@ export function DataTable<T extends object>(props: Props<T>) {
                 )
             )}
 
-            {props.withResourcefulActions && !hideEditableOptions && <Th></Th>}
+            {props.withResourcefulActions && !hideEditableOptions && (
+              <Th className="ab-datatable-actions-heading relative">
+                <span className="sr-only">{t('actions')}</span>
+              </Th>
+            )}
           </Thead>
           <Tbody
             style={{
@@ -1262,6 +1294,7 @@ export function DataTable<T extends object>(props: Props<T>) {
                     <Td
                       className="cursor-pointer"
                       onClick={() => handleCheckboxClick(resource.id)}
+                      dataCell="select"
                     >
                       <DataTableCheckbox
                         resourceId={resource.id}
@@ -1282,7 +1315,9 @@ export function DataTable<T extends object>(props: Props<T>) {
                             },
                             styleOptions?.tdClassName
                           )}
-                          onClick={(event: React.MouseEvent<HTMLTableCellElement>) => {
+                          onClick={(
+                            event: React.MouseEvent<HTMLTableCellElement>
+                          ) => {
                             if (index < 3) {
                               if (
                                 (event.target as HTMLElement).closest(
@@ -1299,6 +1334,8 @@ export function DataTable<T extends object>(props: Props<T>) {
                           }}
                           withoutPadding={styleOptions?.withoutTdPadding}
                           resizable={`${apiEndpoint.pathname}.${column.id}`}
+                          dataLabel={column.label}
+                          dataCell={index === 0 ? 'primary' : 'cell'}
                         >
                           {column.format
                             ? column.format(resource[column.id], resource)
@@ -1308,7 +1345,7 @@ export function DataTable<T extends object>(props: Props<T>) {
                   )}
 
                   {props.withResourcefulActions && !hideEditableOptions && (
-                    <Td>
+                    <Td dataCell="actions">
                       <Dropdown label={t('actions')}>
                         {props.linkToEdit &&
                           (props.showEdit?.(resource) || !props.showEdit) && (

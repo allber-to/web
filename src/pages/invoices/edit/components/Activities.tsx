@@ -23,6 +23,7 @@ import { GenericManyResponse } from '$app/common/interfaces/generic-many-respons
 import { InvoiceActivity } from '$app/common/interfaces/invoice-activity';
 import { Card } from '$app/components/cards';
 import { SquareActivityChart } from '$app/components/icons/SquareActivityChart';
+import { Button } from '$app/components/forms';
 import { Spinner } from '$app/components/Spinner';
 import { useGenerateActivityElement } from '../../common/components/InvoiceSlider';
 
@@ -42,8 +43,14 @@ export default function Activities() {
   const { timeFormat } = useCompanyTimeFormat();
   const { dateFormat } = useCurrentCompanyDateFormats();
 
-  const { data: activities, isLoading } = useQuery({
-    queryKey: ['/api/v1/activities/entity', id],
+  const {
+    data: activities,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ['/api/v1/activities/entity', 'invoice', id],
     queryFn: () =>
       request('POST', endpoint('/api/v1/activities/entity'), {
         entity: 'invoice',
@@ -59,7 +66,7 @@ export default function Activities() {
   return (
     <Card
       title={t('activity')}
-      className="shadow-sm"
+      className="allberto-entity-activity shadow-sm"
       style={{ borderColor: colors.$24 }}
       headerStyle={{ borderColor: colors.$20 }}
       withoutBodyPadding
@@ -71,20 +78,34 @@ export default function Activities() {
         })}
       >
         {isLoading && (
-          <div className="flex justify-center">
+          <div className="flex justify-center" role="status">
             <Spinner />
+            <span className="sr-only">{t('loading')}</span>
           </div>
         )}
 
-        {activities && !activities.length && (
-          <div className="px-3 pt-3 text-sm">{t('api_404')}</div>
+        {isError && (
+          <div className="allberto-entity-error" role="alert">
+            <p>{t('error_title')}</p>
+            <Button
+              behavior="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              {t('refresh')}
+            </Button>
+          </div>
+        )}
+
+        {!isError && activities && !activities.length && (
+          <div className="px-3 pt-3 text-sm">{t('no_records_found')}</div>
         )}
 
         <div className="flex flex-col w-full">
           {activities?.map((activity) => (
             <ActivityBox
               key={activity.id}
-              className="flex space-x-3 p-4 rounded-md flex-1 min-w-0 w-full"
+              className="allberto-entity-activity-row flex space-x-3 p-4 rounded-md flex-1 min-w-0 w-full"
               theme={{
                 backgroundColor: colors.$1,
                 hoverBackgroundColor: colors.$25,

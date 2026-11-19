@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '$app/common/colors';
 import { useInvoiceEditorPaths } from '$app/common/hooks/useInvoiceEditor';
 import { route } from '$app/common/helpers/route';
-import { useFormatMoney } from '$app/common/hooks/money/useFormatMoney';
+import { useDashboardFormatMoney } from '$app/pages/dashboard/hooks/useDashboardFormatMoney';
 import { useCurrentCompanyDateFormats } from '$app/common/hooks/useCurrentCompanyDateFormats';
 import { useDisableNavigation } from '$app/common/hooks/useDisableNavigation';
 import { Invoice } from '$app/common/interfaces/invoice';
@@ -28,7 +28,7 @@ import { CalendarAlert } from '$app/components/icons/CalendarAlert';
 export function PastDueInvoices() {
   const invoicePaths = useInvoiceEditorPaths();
   const [t] = useTranslation();
-  const formatMoney = useFormatMoney();
+  const formatMoney = useDashboardFormatMoney();
 
   const colors = useColorScheme();
   const { dateFormat } = useCurrentCompanyDateFormats();

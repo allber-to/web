@@ -19,6 +19,7 @@ import { permission } from '$app/common/guards/guards/permission';
 
 const Invoices = lazy(() => import('$app/pages/invoices/index/Invoices'));
 const Invoice = lazy(() => import('$app/pages/invoices/Invoice'));
+const Overview = lazy(() => import('$app/pages/invoices/overview/Overview'));
 const Import = lazy(() => import('$app/pages/invoices/import/Import'));
 const Create = lazy(() => import('$app/pages/invoices/create/Create'));
 const Edit = lazy(() => import('$app/pages/invoices/edit/Edit'));
@@ -170,6 +171,7 @@ export const invoiceRoutes = (
         />
       }
     >
+      <Route index element={<Overview />} />
       <Route path="edit" element={<Edit />} />
       <Route path="e_invoice" element={<EInvoice />} />
       <Route path="verifactu" element={<Verifactu />} />

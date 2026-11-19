@@ -80,7 +80,7 @@ export function Badge(props: Props) {
           : undefined,
       }}
       className={classNames(
-        'text-xs px-2 py-1 rounded font-medium',
+        'ab-badge text-xs px-2 py-1 rounded font-medium',
         {
           'bg-transparent': props.variant === 'transparent',
           'bg-[#A1A1AA] bg-opacity-15 text-[#A1A1AA]':

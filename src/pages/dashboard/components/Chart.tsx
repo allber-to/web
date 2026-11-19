@@ -23,7 +23,7 @@ import {
 } from 'recharts';
 import { useColorScheme } from '$app/common/colors';
 import { date as formatDate, useParseDayjs } from '$app/common/helpers';
-import { useFormatMoney } from '$app/common/hooks/money/useFormatMoney';
+import { useDashboardFormatMoney } from '$app/pages/dashboard/hooks/useDashboardFormatMoney';
 import { useCurrentCompany } from '$app/common/hooks/useCurrentCompany';
 import { useCurrentCompanyDateFormats } from '$app/common/hooks/useCurrentCompanyDateFormats';
 import { ensureUniqueDates, generateMonthDateRange } from '../helpers/helpers';
@@ -75,7 +75,7 @@ export function Chart(props: Props) {
   const parseDayjs = useParseDayjs();
   const generateWeekDateRange = useGenerateWeekDateRange();
 
-  const formatMoney = useFormatMoney();
+  const formatMoney = useDashboardFormatMoney();
 
   const [chartData, setChartData] = useState<LineChartData>([]);
 

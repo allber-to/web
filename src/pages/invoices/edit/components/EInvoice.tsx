@@ -80,7 +80,7 @@ export default function EInvoice() {
     company?.tax_data?.acts_as_sender;
 
   const { data: activities } = useQuery({
-    queryKey: ['/api/v1/activities/entity', invoice?.id],
+    queryKey: ['/api/v1/activities/entity', 'invoice', invoice?.id],
     queryFn: () =>
       request('POST', endpoint('/api/v1/activities/entity'), {
         entity: 'invoice',

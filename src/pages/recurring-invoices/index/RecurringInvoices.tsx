@@ -8,6 +8,7 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import '$app/pages/allberto-entities.css';
 import { useTitle } from '$app/common/hooks/useTitle';
 import { Page } from '$app/components/Breadcrumbs';
 import { DataTable } from '$app/components/DataTable';
@@ -109,72 +110,77 @@ export default function RecurringInvoices() {
       breadcrumbs={pages}
       docsLink="en/recurring-invoices/"
     >
-      <DataTable
-        resource="recurring_invoice"
-        columns={columns}
-        footerColumns={footerColumns}
-        endpoint={`/api/v1/recurring_invoices?include=client${
-          shouldShowTagFilter ? ',tags' : ''
-        }&without_deleted_clients=true&sort=id|desc${
-          shouldShowTagFilter ? '' : '&tag_ids='
-        }`}
-        linkToCreate="/recurring_invoices/create"
-        linkToEdit="/recurring_invoices/:id/edit"
-        bulkRoute="/api/v1/recurring_invoices/bulk"
-        customActions={actions}
-        customFilters={filters}
-        customBulkActions={customBulkActions}
-        customFilterPlaceholder="status"
-        filterColumns={shouldShowTagFilter ? filterColumns : undefined}
-        withResourcefulActions
-        rightSide={
-          <div className="flex items-center space-x-2">
-            {Boolean(reactSettings.show_table_footer) && (
-              <DataTableFooterColumnsPicker
+      <section
+        className="allberto-entity-list allberto-entity-recurring-invoices"
+        aria-label={t('recurring_invoices')}
+      >
+        <DataTable
+          resource="recurring_invoice"
+          columns={columns}
+          footerColumns={footerColumns}
+          endpoint={`/api/v1/recurring_invoices?include=client${
+            shouldShowTagFilter ? ',tags' : ''
+          }&without_deleted_clients=true&sort=id|desc${
+            shouldShowTagFilter ? '' : '&tag_ids='
+          }`}
+          linkToCreate="/recurring_invoices/create"
+          linkToEdit="/recurring_invoices/:id/edit"
+          bulkRoute="/api/v1/recurring_invoices/bulk"
+          customActions={actions}
+          customFilters={filters}
+          customBulkActions={customBulkActions}
+          customFilterPlaceholder="status"
+          filterColumns={shouldShowTagFilter ? filterColumns : undefined}
+          withResourcefulActions
+          rightSide={
+            <div className="flex items-center space-x-2">
+              {Boolean(reactSettings.show_table_footer) && (
+                <DataTableFooterColumnsPicker
+                  table="recurringInvoice"
+                  columns={allFooterColumns}
+                />
+              )}
+
+              <DataTableColumnsPicker
+                columns={recurringInvoiceColumns as unknown as string[]}
+                defaultColumns={defaultColumns}
                 table="recurringInvoice"
-                columns={allFooterColumns}
               />
-            )}
 
-            <DataTableColumnsPicker
-              columns={recurringInvoiceColumns as unknown as string[]}
-              defaultColumns={defaultColumns}
-              table="recurringInvoice"
-            />
-
-            <Guard
-              type="component"
-              guards={[
-                or(
-                  permission('create_recurring_invoice'),
-                  permission('edit_recurring_invoice')
-                ),
-              ]}
-              component={<ImportButton route="/recurring_invoices/import" />}
-            />
-          </div>
-        }
-        linkToCreateGuards={[permission('create_recurring_invoice')]}
-        hideEditableOptions={!hasPermission('edit_recurring_invoice')}
-        onTableRowClick={(recurringInvoice) => {
-          setSliderRecurringInvoiceId(
-            (recurringInvoice as RecurringInvoice).id
-          );
-          setRecurringInvoiceSliderVisibility(true);
-        }}
-        enableSavingFilterPreference
-        dateRangeColumns={[
-          {
-            column: 'next_send_datetime',
-            queryParameterKey: 'next_send_between',
-          },
-          {
-            column: 'created_at',
-            queryParameterKey: 'created_between',
-          },
-        ]}
-        enableSavingLatestDataForNavigation
-      />
+              <Guard
+                type="component"
+                guards={[
+                  or(
+                    permission('create_recurring_invoice'),
+                    permission('edit_recurring_invoice')
+                  ),
+                ]}
+                component={<ImportButton route="/recurring_invoices/import" />}
+              />
+            </div>
+          }
+          linkToCreateGuards={[permission('create_recurring_invoice')]}
+          hideEditableOptions={!hasPermission('edit_recurring_invoice')}
+          onTableRowClick={(recurringInvoice) => {
+            setSliderRecurringInvoiceId(
+              (recurringInvoice as RecurringInvoice).id
+            );
+            setRecurringInvoiceSliderVisibility(true);
+          }}
+          enableSavingFilterPreference
+          dateRangeColumns={[
+            {
+              column: 'next_send_datetime',
+              queryParameterKey: 'next_send_between',
+            },
+            {
+              column: 'created_at',
+              queryParameterKey: 'created_between',
+            },
+          ]}
+          enableSavingLatestDataForNavigation
+        />
+      </section>
 
       {!disableNavigation('recurring_invoice', recurringInvoiceSlider) && (
         <RecurringInvoiceSlider />

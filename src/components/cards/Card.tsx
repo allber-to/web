@@ -80,7 +80,7 @@ export function Card(props: Props) {
     <div
       ref={props.innerRef}
       className={classNames(
-        `border rounded-md overflow-visible ${props.className}`,
+        `ab-card-ninja border rounded-md overflow-visible ${props.className}`,
         {
           'overflow-y-auto': props.withScrollableBody,
           'h-full': height === 'full',

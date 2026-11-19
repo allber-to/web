@@ -8,6 +8,7 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import HistoryAndActivities from './HistoryAndActivities';
 import { useSetAtom } from 'jotai';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -81,6 +82,10 @@ export default function Invoices() {
         withRecordScopedFilters
         recordScopeId={id}
       />
+
+      <div className="allberto-entity-client-history">
+        <HistoryAndActivities />
+      </div>
 
       <DeleteInvoicesConfirmationModal
         selectedInvoiceIds={selectedInvoiceIds}

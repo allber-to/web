@@ -128,7 +128,11 @@ export function Tabs(props: Props) {
         <SelectField
           id="tabs"
           className="text-sm sm:text-sm"
-          defaultValue={props.tabs.find((tab) => tab)?.name}
+          value={
+            props.tabs.find(
+              (tab) => tab.enabled !== false && isActive(tab)
+            )?.href ?? ''
+          }
           onValueChange={(value) => navigate(value)}
           customSelector
           dismissable={false}

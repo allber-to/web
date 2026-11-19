@@ -15,7 +15,6 @@ import { useAtomValue } from 'jotai';
 import { debounce } from 'lodash';
 import { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BiSearch } from 'react-icons/bi';
 import { useNavigate } from 'react-router-dom';
 import { v4 } from 'uuid';
 import { useColorScheme } from '$app/common/colors';
@@ -36,7 +35,6 @@ import { SearchRecord, SearchResponse } from '$app/common/interfaces/search';
 import { InputField } from '$app/components/forms';
 import { Entry } from '$app/components/forms/Combobox';
 import { ExternalLink } from '$app/components/icons/ExternalLink';
-import { Icon } from '$app/components/icons/Icon';
 import { OppositeArrows } from '$app/components/icons/OppositeArrows';
 import { Search as SearchIcon } from '$app/components/icons/Search';
 import { Modal } from '$app/components/Modal';
@@ -328,35 +326,24 @@ export function Search$() {
       <button
         type="button"
         onClick={() => setIsModalOpen(true)}
-        className="lg:hidden flex justify-end items-end"
+        className="ab-tb-search-btn"
+        aria-label={t('search') as string}
+        aria-keyshortcuts={
+          shortcutBindings.search
+            ? formatBinding(shortcutBindings.search)
+            : undefined
+        }
       >
-        <Icon element={BiSearch} size={22} style={{ color: colors.$3 }} />
-      </button>
+        <SearchIcon color="currentColor" />
 
-      <div
-        className="hidden lg:flex items-center border rounded-md p-1.5 space-x-5"
-        onClick={() => setIsModalOpen(true)}
-        style={{ height: '2.3rem', borderColor: colors.$5 }}
-      >
-        <div className="flex items-center space-x-1.5 pl-1">
-          <SearchIcon color={colors.$17} />
-
-          <p className="text-sm" style={{ color: colors.$17 }}>
-            {t('search_placeholder')}
-          </p>
-        </div>
+        <span className="ab-tb-search-text">{t('search_placeholder')}</span>
 
         {shortcutBindings.search && (
-          <div
-            className="flex items-center border px-1.5 py-0.5"
-            style={{ borderColor: colors.$5, borderRadius: '0.25rem' }}
-          >
-            <p className="text-sm" style={{ color: colors.$17 }}>
-              {formatBinding(shortcutBindings.search)}
-            </p>
-          </div>
+          <kbd className="ab-tb-kbd" aria-hidden="true">
+            {formatBinding(shortcutBindings.search)}
+          </kbd>
         )}
-      </div>
+      </button>
 
       <Modal
         visible={isModalOpen}

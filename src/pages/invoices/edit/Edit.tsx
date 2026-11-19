@@ -57,6 +57,8 @@ import { TaxDataBadge } from './components/TaxDataBadge';
 import { useDefaultTabIndex } from '$app/common/hooks/useDefaultTabIndex';
 
 export interface Context {
+  /** Unmodified server response; the editable invoice can be recalculated in place. */
+  persistedInvoice: Invoice | undefined;
   invoice: Invoice | undefined;
   setInvoice: Dispatch<SetStateAction<Invoice | undefined>>;
   isDefaultTerms: boolean;

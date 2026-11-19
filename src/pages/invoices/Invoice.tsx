@@ -8,12 +8,21 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import '$app/pages/allberto-entities.css';
+import { Button } from '$app/components/forms';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { cloneDeep } from 'lodash';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Outlet, useParams, useSearchParams } from 'react-router-dom';
+import {
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
+import { useInvoiceEditorPaths } from '$app/common/hooks/useInvoiceEditor';
 import { v4 } from 'uuid';
 import { InvoiceStatus } from '$app/common/enums/invoice-status';
 import { numberBreadcrumb } from '$app/common/helpers/breadcrumbs';
@@ -54,13 +63,18 @@ import { useHandleSave } from './edit/hooks/useInvoiceSave';
 dayjs.extend(utc);
 
 export default function Invoice() {
-  const { documentTitle } = useTitle('edit_invoice');
+  const { documentTitle, setDocumentTitle } = useTitle('edit_invoice');
 
   const [t] = useTranslation();
 
   const eInvoiceRef = useRef<EInvoiceComponent>(null);
 
   const { id } = useParams();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const invoicePaths = useInvoiceEditorPaths();
+  const isOverview =
+    pathname.replace(/\/$/, '') === route('/invoices/:id', { id });
   const company = useCurrentCompany();
   const [searchParams] = useSearchParams();
 
@@ -71,7 +85,10 @@ export default function Invoice() {
   const [triggerValidationQuery, setTriggerValidationQuery] =
     useState<boolean>(true);
 
-  const { data } = useInvoiceQuery({ id, includeIsLocked: true });
+  const { data, isError, isFetching, refetch } = useInvoiceQuery({
+    id,
+    includeIsLocked: true,
+  });
 
   const [invoice, setInvoice] = useAtomWithPrevent(invoiceAtom, {
     disableFunctionality: id === data?.id && data?.is_locked,
@@ -116,10 +133,19 @@ export default function Invoice() {
   const pages: Page[] = [
     { name: t('invoices'), href: '/invoices' },
     {
-      name: numberBreadcrumb(data?.number, t('edit_invoice')),
-      href: route('/invoices/:id/edit', { id }),
+      name: numberBreadcrumb(
+        data?.number,
+        t(isOverview ? 'overview' : 'edit_invoice')
+      ),
+      href: route(isOverview ? '/invoices/:id' : '/invoices/:id/edit', { id }),
     },
   ];
+
+  useEffect(() => {
+    setDocumentTitle(
+      isOverview ? `${t('invoice')} ${data?.number || ''}` : t('edit_invoice')
+    );
+  }, [isOverview, data?.number, t]);
 
   useEffect(() => {
     const isAnyAction = searchParams.get('action');
@@ -155,6 +181,7 @@ export default function Invoice() {
   useSaveKeyboardShortcut({
     isEnabled: Boolean(
       invoice &&
+        !isOverview &&
         !isFormBusy &&
         !invoice.is_locked &&
         invoice.status_id !== InvoiceStatus.Cancelled
@@ -184,7 +211,9 @@ export default function Invoice() {
   return (
     <>
       <Default
-        title={documentTitle}
+        title={
+          isOverview ? `${t('invoice')} ${data?.number || ''}` : documentTitle
+        }
         breadcrumbs={pages}
         {...((hasPermission('edit_invoice') || entityAssigned(invoice)) &&
           invoice && {
@@ -192,12 +221,17 @@ export default function Invoice() {
               <ResourceActions
                 resource={invoice}
                 actions={actions}
-                onSaveClick={() => setSaveChanges(true)}
-                disableSaveButton={
-                  (invoice && invoice.status_id === InvoiceStatus.Cancelled) ||
-                  isFormBusy
+                saveButtonLabel={isOverview ? t('edit') : undefined}
+                onSaveClick={() =>
+                  isOverview
+                    ? navigate(route(invoicePaths.edit, { id }))
+                    : setSaveChanges(true)
                 }
-                disableSaveButtonOnly={invoice.is_locked}
+                disableSaveButton={
+                  !isOverview &&
+                  (invoice.status_id === InvoiceStatus.Cancelled || isFormBusy)
+                }
+                disableSaveButtonOnly={!isOverview && invoice.is_locked}
                 cypressRef="invoiceActionDropdown"
               />
             ),
@@ -222,7 +256,7 @@ export default function Invoice() {
         afterBreadcrumbs={<PreviousNextNavigation entity="invoice" />}
       >
         {invoice?.id === id ? (
-          <div className="space-y-2">
+          <div className="allberto-entity-detail space-y-2">
             {Boolean(invoice?.is_locked) && (
               <div
                 className="flex items-center justify-center h-10 w-full text-white"
@@ -247,6 +281,7 @@ export default function Invoice() {
               <Outlet
                 context={{
                   invoice,
+                  persistedInvoice: data?.id === id ? data : undefined,
                   setInvoice,
                   errors,
                   isDefaultTerms,
@@ -262,14 +297,28 @@ export default function Invoice() {
               />
             </div>
           </div>
+        ) : isError ? (
+          <div className="allberto-entity-error" role="alert">
+            <p>{t('error_title')}</p>
+            <Button
+              behavior="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              {t('refresh')}
+            </Button>
+          </div>
         ) : (
-          <div className="flex justify-center items-center">
+          <div className="allberto-entity-loading" role="status">
             <Spinner />
+            <span className="sr-only">{t('loading')}</span>
           </div>
         )}
       </Default>
 
-      <AddUninvoicedItemsButton invoice={invoice} setInvoice={setInvoice} />
+      {!isOverview && (
+        <AddUninvoicedItemsButton invoice={invoice} setInvoice={setInvoice} />
+      )}
 
       {modal}
     </>

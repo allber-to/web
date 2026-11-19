@@ -153,6 +153,10 @@ vi.mock('$app/components/layouts/components/MobileSidebar', () => ({
   MobileSidebar: () => null,
 }));
 
+vi.mock('$app/components/layouts/components/Topbar', () => ({
+  Topbar: () => null,
+}));
+
 import { Default } from '../../../src/components/layouts/Default';
 
 describe('Default unlock button hook order', () => {

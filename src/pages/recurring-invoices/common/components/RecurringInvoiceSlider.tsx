@@ -177,7 +177,11 @@ export const RecurringInvoiceSlider = () => {
   });
 
   const { data: activities } = useQuery({
-    queryKey: ['/api/v1/activities/entity', recurringInvoice?.id],
+    queryKey: [
+      '/api/v1/activities/entity',
+      'recurring_invoice',
+      recurringInvoice?.id,
+    ],
     queryFn: () =>
       request('POST', endpoint('/api/v1/activities/entity'), {
         entity: 'recurring_invoice',

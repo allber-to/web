@@ -51,16 +51,16 @@ export type ClientShowCard =
   | 'public_notes'
   | 'private_notes';
 
-const DEFAULT_CARDS: ClientShowCard[] = [
+export const DEFAULT_CARDS: ClientShowCard[] = [
   'details',
   'address',
   'contacts',
   'standing',
+  'gateways',
 ];
 
 const ALL_CARDS: ClientShowCard[] = [
   ...DEFAULT_CARDS,
-  'gateways',
   'public_notes',
   'private_notes',
 ];
@@ -140,6 +140,9 @@ export function CardsCustomizationModal() {
   return (
     <>
       <Box
+        as="button"
+        type="button"
+        aria-label={t('edit_columns') as string}
         className="p-1.5 sm:p-[0.6rem] border rounded-md shadow-sm cursor-pointer"
         theme={{
           hoverColor: colors.$4,

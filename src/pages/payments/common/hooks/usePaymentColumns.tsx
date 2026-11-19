@@ -37,13 +37,13 @@ import { normalizeColumnName } from '$app/common/helpers/data-table';
 import { TagPills } from '$app/components/tags/TagPills';
 
 export const defaultColumns: string[] = [
-  'status',
+  'date',
   'number',
   'client',
-  'amount',
   'invoice_number',
-  'date',
   'type',
+  'amount',
+  'status',
   'transaction_reference',
 ];
 

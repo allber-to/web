@@ -8,6 +8,10 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import '$app/pages/allberto-entities.css';
+import { Fragment } from 'react';
+import { Button } from '$app/components/forms';
+import { EntityStatus } from '$app/components/EntityStatus';
 import { useTitle } from '$app/common/hooks/useTitle';
 import { useClientQuery } from '$app/common/queries/clients';
 import { Page } from '$app/components/Breadcrumbs';
@@ -41,6 +45,7 @@ import { InputLabel } from '$app/components/forms';
 import { Address } from './components/Address';
 import CardsCustomizationModal, {
   ClientShowCard,
+  DEFAULT_CARDS,
 } from './components/CardsCustomizationModal';
 import { useReactSettings } from '$app/common/hooks/useReactSettings';
 import { useRecordFiltersScope } from '$app/common/hooks/useScopedTableFilters';
@@ -54,7 +59,13 @@ export default function Client() {
     useState<boolean>(false);
 
   const { id } = useParams();
-  const { data: client, isLoading } = useClientQuery({
+  const {
+    data: client,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useClientQuery({
     id,
     enabled: Boolean(id) && !isPurgeOrMergeActionCalled,
   });
@@ -85,12 +96,7 @@ export default function Client() {
     useShouldDisplayClientGatewaysAndAutoBill();
 
   const isCardVisible = (card: ClientShowCard) => {
-    const currentCards = reactSettings.client_show_cards || [
-      'details',
-      'address',
-      'contacts',
-      'standing',
-    ];
+    const currentCards = reactSettings.client_show_cards || DEFAULT_CARDS;
 
     if (card === 'gateways') {
       return (
@@ -132,13 +138,11 @@ export default function Client() {
     };
   }, [client]);
 
+  const hasSavedCardLayout = Boolean(reactSettings.client_show_cards);
+
   const currentCards = useMemo(() => {
-    return (reactSettings.client_show_cards || [
-      'details',
-      'address',
-      'contacts',
-      'standing',
-    ]) as ClientShowCard[];
+    return (reactSettings.client_show_cards ||
+      DEFAULT_CARDS) as ClientShowCard[];
   }, [reactSettings.client_show_cards]);
 
   const {
@@ -185,26 +189,75 @@ export default function Client() {
         </div>
       }
     >
-      {isLoading && <Spinner />}
+      {isLoading && (
+        <div className="allberto-entity-loading" role="status">
+          <Spinner />
+          <span className="sr-only">{t('loading')}</span>
+        </div>
+      )}
+      {isError && (
+        <div className="allberto-entity-error" role="alert">
+          <p>{t('error_title')}</p>
+          <Button
+            behavior="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {t('refresh')}
+          </Button>
+        </div>
+      )}
 
       {client && (
         <>
-          <div className="grid grid-cols-12 lg:space-y-0 gap-4">
-            {currentCards
-              ?.filter((card) => isCardVisible(card))
-              .map((card) => displayCard(card))}
-          </div>
+          <section className="allberto-entity-detail">
+            <div className="allberto-entity-record-meta">
+              <EntityStatus entity={client} />
+              {client.id_number && (
+                <span>
+                  {t('id_number')}: {client.id_number}
+                </span>
+              )}
+              {client.number && (
+                <span>
+                  {t('number')}: {client.number}
+                </span>
+              )}
+            </div>
 
-          <Tabs tabs={tabs} className="mt-6" />
+            {!hasSavedCardLayout && isCardVisible('standing') && (
+              <Standing client={client} />
+            )}
 
-          <div className="my-4">
-            <Outlet
-              context={{
-                isPurgeOrMergeActionCalled,
-                displayName: client.display_name,
-              }}
-            />
-          </div>
+            <div className="allberto-entity-detail-grid">
+              <div className="allberto-entity-detail-main">
+                <Tabs tabs={tabs} />
+                <div className="allberto-entity-list allberto-entity-related">
+                  <Outlet
+                    context={{
+                      isPurgeOrMergeActionCalled,
+                      displayName: client.display_name,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <aside
+                className="allberto-entity-sidebar"
+                aria-label={t('details') as string}
+              >
+                {currentCards
+                  .filter(
+                    (card) =>
+                      (card !== 'standing' || hasSavedCardLayout) &&
+                      isCardVisible(card)
+                  )
+                  .map((card) => (
+                    <Fragment key={card}>{displayCard(card)}</Fragment>
+                  ))}
+              </aside>
+            </div>
+          </section>
 
           <ChangeTemplateModal<IClient>
             entity={changeTemplateEntityContext?.entity ?? 'client'}

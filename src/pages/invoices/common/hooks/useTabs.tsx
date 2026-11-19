@@ -48,6 +48,10 @@ export function useTabs(params: Params) {
 
   const tabs: Tab[] = [
     {
+      name: t('overview'),
+      href: route('/invoices/:id', { id }),
+    },
+    {
       name: t('edit'),
       href: route('/invoices/:id/edit', { id }),
     },

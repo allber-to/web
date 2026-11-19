@@ -597,15 +597,15 @@ export function useCreate({
 }
 
 export const defaultColumns: string[] = [
-  'status',
-  'number',
   'client',
+  'number',
   'amount',
-  'remaining_cycles',
-  'next_send_date',
   'frequency',
+  'next_send_date',
   'due_date_days',
   'auto_bill',
+  'remaining_cycles',
+  'status',
 ];
 
 export function useAllRecurringInvoiceColumns() {

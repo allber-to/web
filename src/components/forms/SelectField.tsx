@@ -76,12 +76,14 @@ export function SelectField(props: SelectProps) {
   const $entries = React.Children.map(
     [withBlank ? blankEntry : [], children],
     (child) =>
-      isValidElement(child) && {
-        label: Array.isArray(child.props.children)
-          ? child.props.children.join('')
-          : child.props.children,
-        value: child.props.value,
-      }
+      isValidElement(child)
+        ? {
+            label: Array.isArray(child.props.children)
+              ? child.props.children.join('')
+              : child.props.children,
+            value: child.props.value,
+          }
+        : null
   );
 
   const selectedEntry = $entries?.find((entry) => entry.value === value);

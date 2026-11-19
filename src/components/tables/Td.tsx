@@ -20,6 +20,10 @@ interface Props extends CommonProps {
   resizable?: string;
   withoutPadding?: boolean;
   style?: CSSProperties;
+  /** Allberto: rótulo da coluna para o layout de lista mobile. */
+  dataLabel?: string;
+  /** Allberto: papel da célula no layout mobile. */
+  dataCell?: 'select' | 'primary' | 'cell' | 'actions';
 }
 
 export function Td$(props: Props) {
@@ -63,6 +67,8 @@ function HtmlTd(props: HtmlTdProps) {
       colSpan={props.colSpan}
       rowSpan={props.rowSpan}
       onClick={props.onClick}
+      data-label={props.dataLabel}
+      data-ab-cell={props.dataCell}
       className={classNames(
         `text-sm break-words ${props.className} overflow-hidden whitespace-nowrap text-ellipsis`,
         {

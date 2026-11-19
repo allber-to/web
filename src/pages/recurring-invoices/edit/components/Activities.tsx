@@ -43,7 +43,7 @@ export default function Activities() {
   const { dateFormat } = useCurrentCompanyDateFormats();
 
   const { data: activities, isLoading } = useQuery({
-    queryKey: ['/api/v1/activities/entity', id],
+    queryKey: ['/api/v1/activities/entity', 'recurring_invoice', id],
     queryFn: () =>
       request('POST', endpoint('/api/v1/activities/entity'), {
         entity: 'recurring_invoice',

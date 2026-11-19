@@ -8,6 +8,7 @@
  * @license https://www.elastic.co/licensing/elastic-license
  */
 
+import '$app/pages/allberto-entities.css';
 import { useTitle } from '$app/common/hooks/useTitle';
 import { useInvoiceEditorPaths } from '$app/common/hooks/useInvoiceEditor';
 import { DataTable } from '$app/components/DataTable';
@@ -118,72 +119,77 @@ export default function Invoices() {
 
   return (
     <Default title={documentTitle} breadcrumbs={pages} docsLink="en/invoices">
-      <DataTable
-        resource="invoice"
-        endpoint={`/api/v1/invoices?include=client.group_settings,project${
-          shouldShowTagFilter ? ',tags' : ''
-        }&without_deleted_clients=true&sort=id|desc${
-          shouldShowTagFilter ? '' : '&tag_ids='
-        }`}
-        columns={columns}
-        footerColumns={footerColumns}
-        bulkRoute="/api/v1/invoices/bulk"
-        linkToCreate={invoicePaths.create}
-        linkToEdit={invoicePaths.edit}
-        withResourcefulActions
-        withoutDefaultBulkActions
-        customActions={actions}
-        bottomActionsKeys={['cancel_invoice', 'credit_note']}
-        customBulkActions={customBulkActions}
-        customFilters={filters}
-        customFilterPlaceholder="status"
-        filterColumns={shouldShowTagFilter ? filterColumns : undefined}
-        rightSide={
-          <div className="flex items-center space-x-2">
-            {Boolean(reactSettings.show_table_footer) && (
-              <DataTableFooterColumnsPicker
+      <section
+        className="allberto-entity-list allberto-entity-invoices"
+        aria-label={t('invoices')}
+      >
+        <DataTable
+          resource="invoice"
+          endpoint={`/api/v1/invoices?include=client.group_settings,project${
+            shouldShowTagFilter ? ',tags' : ''
+          }&without_deleted_clients=true&sort=id|desc${
+            shouldShowTagFilter ? '' : '&tag_ids='
+          }`}
+          columns={columns}
+          footerColumns={footerColumns}
+          bulkRoute="/api/v1/invoices/bulk"
+          linkToCreate={invoicePaths.create}
+          linkToEdit={invoicePaths.edit}
+          withResourcefulActions
+          withoutDefaultBulkActions
+          customActions={actions}
+          bottomActionsKeys={['cancel_invoice', 'credit_note']}
+          customBulkActions={customBulkActions}
+          customFilters={filters}
+          customFilterPlaceholder="status"
+          filterColumns={shouldShowTagFilter ? filterColumns : undefined}
+          rightSide={
+            <div className="flex items-center space-x-2">
+              {Boolean(reactSettings.show_table_footer) && (
+                <DataTableFooterColumnsPicker
+                  table="invoice"
+                  columns={allFooterColumns}
+                />
+              )}
+
+              <DataTableColumnsPicker
                 table="invoice"
-                columns={allFooterColumns}
+                columns={invoiceColumns as unknown as string[]}
+                defaultColumns={defaultColumns}
               />
-            )}
 
-            <DataTableColumnsPicker
-              table="invoice"
-              columns={invoiceColumns as unknown as string[]}
-              defaultColumns={defaultColumns}
-            />
-
-            <Guard
-              type="component"
-              component={<ImportButton route="/invoices/import" />}
-              guards={[
-                or(permission('create_invoice'), permission('edit_invoice')),
-              ]}
-            />
-          </div>
-        }
-        linkToCreateGuards={[permission('create_invoice')]}
-        hideEditableOptions={!hasPermission('edit_invoice')}
-        onTableRowClick={(invoice) => {
-          setSliderInvoiceId(invoice.id);
-          setInvoiceSliderVisibility(true);
-        }}
-        dateRangeColumns={dateRangeColumns}
-        enableSavingFilterPreference
-        onDeleteBulkAction={(selected) => {
-          setSelectedInvoiceIds(selected);
-          setIsConfirmActionModalOpen(true);
-        }}
-        showDelete={(invoice) =>
-          Boolean(!verifactuEnabled) ||
-          (verifactuEnabled && invoice.status_id === InvoiceStatus.Draft)
-        }
-        showRestore={(invoice) =>
-          Boolean(!verifactuEnabled) ||
-          (verifactuEnabled && invoice.status_id === InvoiceStatus.Draft)
-        }
-        enableSavingLatestDataForNavigation
-      />
+              <Guard
+                type="component"
+                component={<ImportButton route="/invoices/import" />}
+                guards={[
+                  or(permission('create_invoice'), permission('edit_invoice')),
+                ]}
+              />
+            </div>
+          }
+          linkToCreateGuards={[permission('create_invoice')]}
+          hideEditableOptions={!hasPermission('edit_invoice')}
+          onTableRowClick={(invoice) => {
+            setSliderInvoiceId(invoice.id);
+            setInvoiceSliderVisibility(true);
+          }}
+          dateRangeColumns={dateRangeColumns}
+          enableSavingFilterPreference
+          onDeleteBulkAction={(selected) => {
+            setSelectedInvoiceIds(selected);
+            setIsConfirmActionModalOpen(true);
+          }}
+          showDelete={(invoice) =>
+            Boolean(!verifactuEnabled) ||
+            (verifactuEnabled && invoice.status_id === InvoiceStatus.Draft)
+          }
+          showRestore={(invoice) =>
+            Boolean(!verifactuEnabled) ||
+            (verifactuEnabled && invoice.status_id === InvoiceStatus.Draft)
+          }
+          enableSavingLatestDataForNavigation
+        />
+      </section>
 
       {!disableNavigation('invoice', invoiceSlider) && <InvoiceSlider />}
 

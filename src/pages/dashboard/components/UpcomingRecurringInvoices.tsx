@@ -11,7 +11,7 @@
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from '$app/common/colors';
 import { route } from '$app/common/helpers/route';
-import { useFormatMoney } from '$app/common/hooks/money/useFormatMoney';
+import { useDashboardFormatMoney } from '$app/pages/dashboard/hooks/useDashboardFormatMoney';
 import { useDateTime } from '$app/common/hooks/useDateTime';
 import { useDisableNavigation } from '$app/common/hooks/useDisableNavigation';
 import { useGetSetting } from '$app/common/hooks/useGetSetting';
@@ -31,7 +31,7 @@ export function UpcomingRecurringInvoices() {
   const colors = useColorScheme();
 
   const getSetting = useGetSetting();
-  const formatMoney = useFormatMoney();
+  const formatMoney = useDashboardFormatMoney();
   const getTimezone = useGetTimezone();
   const disableNavigation = useDisableNavigation();
   const dateTime = useDateTime({ withTimezone: true });

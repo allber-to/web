@@ -1,0 +1,61 @@
+name: allberto-ninja-local
+services:
+  app:
+    image: invoiceninja/invoiceninja-debian@sha256:05efd0913eb0d72d0246ec96d6cb6adf5ac3d3e59b9b91514b9f64b892f21c92
+    restart: "no"
+    env_file: .env
+    volumes:
+      - app_public:/var/www/html/public
+      - app_storage:/var/www/html/storage
+    networks: [backend]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  nginx:
+    image: nginx:alpine
+    restart: "no"
+    ports: ["127.0.0.1:8012:80"]
+    networks: [backend, edge]
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - app_public:/var/www/html/public:ro
+      - app_storage:/var/www/html/storage:ro
+    depends_on:
+      app:
+        condition: service_healthy
+  mysql:
+    image: mysql:8
+    restart: "no"
+    networks: [backend]
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: [CMD, mysqladmin, ping, -h, localhost]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  redis:
+    image: redis:alpine
+    restart: "no"
+    networks: [backend]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+networks:
+  backend:
+    internal: true
+  edge: {}
+volumes:
+  app_public: {}
+  app_storage: {}
+  mysql_data: {}
+  redis_data: {}

@@ -15,7 +15,7 @@ import { useColorScheme } from '$app/common/colors';
 import { date, endpoint } from '$app/common/helpers';
 import { decodeDashboardField } from '$app/common/helpers/react-settings';
 import { request } from '$app/common/helpers/request';
-import { useFormatMoney } from '$app/common/hooks/money/useFormatMoney';
+import { useDashboardFormatMoney } from '$app/pages/dashboard/hooks/useDashboardFormatMoney';
 import { useCurrentCompanyDateFormats } from '$app/common/hooks/useCurrentCompanyDateFormats';
 import { Card } from '$app/components/cards';
 import { Spinner } from '$app/components/Spinner';
@@ -48,7 +48,7 @@ export function DashboardCard({
   onSettled,
 }: Props) {
   const [t] = useTranslation();
-  const formatMoney = useFormatMoney();
+  const formatMoney = useDashboardFormatMoney();
 
   const colors = useColorScheme();
   const { dateFormat } = useCurrentCompanyDateFormats();

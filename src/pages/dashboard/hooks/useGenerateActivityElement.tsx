@@ -29,6 +29,10 @@ import {
 import { Button, InputField, Link } from '$app/components/forms';
 import { ArrowRight } from '$app/components/icons/ArrowRight';
 import { SquareActivityChart } from '$app/components/icons/SquareActivityChart';
+import {
+  MASKED_VALUE,
+  useHideValues,
+} from '$app/components/layouts/common/privacy';
 import { Modal } from '$app/components/Modal';
 
 const Box = styled.div`
@@ -40,6 +44,7 @@ const Box = styled.div`
 `;
 
 export function useGenerateActivityElement() {
+  const hideValues = useHideValues();
   const invoicePaths = useInvoiceEditorPaths();
   const [t] = useTranslation();
 
@@ -47,6 +52,10 @@ export function useGenerateActivityElement() {
 
   const { timeFormat } = useCompanyTimeFormat();
   const { dateFormat } = useCurrentCompanyDateFormats();
+
+  // Notas são texto livre e podem conter valores: com a máscara ligada o
+  // conteúdo inteiro é ocultado (sem heurística numérica).
+  const noteHidden = t('allberto_note_hidden');
 
   const generate = (activity: ActivityRecord) => {
     let text = trans(`activity_${activity.activity_type_id}`, {});
@@ -154,7 +163,9 @@ export function useGenerateActivityElement() {
           {activity?.invoice?.label}
         </Link>
       ),
-      payment_amount: activity?.payment_amount?.label,
+      payment_amount: hideValues
+        ? MASKED_VALUE
+        : activity?.payment_amount?.label,
       payment: (
         <Link
           to={route('/payments/:id/edit', { id: activity.payment?.hashed_id })}
@@ -190,11 +201,12 @@ export function useGenerateActivityElement() {
           {activity?.subscription?.label}
         </Link>
       ),
-      adjustment: activity?.adjustment?.label,
+      // Estorno: mesma máscara de payment_amount.
+      adjustment: hideValues ? MASKED_VALUE : activity?.adjustment?.label,
       notes:
         activity?.notes &&
         [151, 152, 153].includes(activity.activity_type_id) ? (
-          <>{activity?.notes ?? ''}</>
+          <>{hideValues ? noteHidden : (activity?.notes ?? '')}</>
         ) : activityEntity &&
           activity[activityEntity as keyof typeof activity] ? (
           <>
@@ -211,7 +223,7 @@ export function useGenerateActivityElement() {
                 }/edit`
               )}
             >
-              {activity?.notes}
+              {hideValues ? noteHidden : activity?.notes}
             </Link>
           </>
         ) : null,
