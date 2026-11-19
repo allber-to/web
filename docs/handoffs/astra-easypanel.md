@@ -1,13 +1,13 @@
 # Astra — artefatos EasyPanel
 
-19/11/2026. Implementação conforme `docs/architecture-easypanel.md`: **duas origens dedicadas, sem proxy por caminhos**. Nenhum acesso ao painel, VPS, Chrome ou WHMCS. Nenhum deploy remoto, registro público, commit ou push. `src/`, `tests/` e `local-backend/` preservados.
+19/11/2026. Implementação conforme `docs/architecture-easypanel.md`: **duas origens HTTPS pelo proxy EasyPanel, sem proxy por caminhos nem portas publicadas**, conforme adendo §14. Nenhum acesso ao painel, VPS, Chrome ou WHMCS. Nenhum deploy remoto, registro público, commit ou push. `src/`, `tests/` e `local-backend/` preservados.
 
 ## Arquivos e configuração
 
 - `.dockerignore` retira Git, dependências/build locais, `.env*`, backend local, evidências, artefatos e arquivos de chaves do contexto.
 - `deploy/easypanel/frontend.Dockerfile`: Node 22 bookworm slim, `HUSKY=0`, `npm ci`, `npx vite build`, nginx final. `VITE_API_URL` obrigatório validado como origem HTTP(S) sem path/barra final/credenciais; `GIT_SHA` obrigatório com 40 caracteres hexadecimais. Flags fixas self-host, não teste, browser router e integrações opcionais desabilitadas. Após Vite, remove somente `dist/docuninja/builder2.0.js` quando VITE_ENABLE_DOCUNINJA não é true; o arquivo fonte permanece intacto. Executa self-checks e varredura E5 antes de produzir a imagem final. Só `dist/` chega ao runtime. `/version.json` publica apenas revisão e instante de build; label OCI registra revisão.
 - `frontend.conf`: SPA fallback, `/healthz`, index/version sem cache, assets `/react/` imutáveis e 404 para inexistentes. Sem proxy_pass. Gzip habilitado para JS, CSS, JSON e SVG.
-- `compose.yml`: app 5.13.49 fixado por digest de índice; nginx/backend construído localmente; MySQL/Redis isolados; quatro volumes nomeados; `unless-stopped`; só nginx publica `${API_PORT}:80`. Ambiente do app explicitamente mapeado. Segredos/origem/porta faltantes causam erro de configuração, sem defaults de credencial.
+- `compose.yml`: app 5.13.49 fixado por digest de índice; nginx/backend construído localmente; MySQL/Redis isolados; quatro volumes nomeados; `unless-stopped`; nenhuma porta publicada no host; domínio da API deve apontar ao serviço interno nginx, porta 80. Ambiente do app explicitamente mapeado. Segredos/origem faltantes causam erro de configuração, sem defaults de credencial.
 - `nginx/`: configurações oficiais validadas na fase anterior, origem anotada. Dockerfile remove `default.conf` da imagem antes de copiar os dois arquivos; isso reproduz o diretório montado na fase local e evita manter um virtual host extra do nginx base.
 - `env.example`: somente chaves dinâmicas vazias; valores fixos da seção 4 documentados como comentários e implementados no Compose. Não gerar `.env` real neste checkout para a VPS.
 
@@ -74,20 +74,20 @@ Verificação E7 na VPS cabe exclusivamente ao coordenador após P1–P6: POST v
 
 ## Ordem de operação no painel — coordenador
 
-1. Fechar P1–P6: versão/plano, arquitetura, recursos, duas portas livres/liberadas, inventário alheio e email autorizado. Não assumir 8090/8012 livres.
-2. Publicar/referenciar commit revisado e tag identificada. Criar projeto allberto, sem tocar projetos alheios.
-3. Serviço backend Compose: Git público, branch/ref aprovada, Build Path `/deploy/easypanel`, arquivo `compose.yml`. Criar ambiente novo no editor e habilitar Create .env file. Registrar somente valores públicos; guardar APP_KEY fora do painel com o proprietário.
-4. Deploy backend; conferir health, versão e volumes. Portas do banco/Redis/FPM não publicadas. Testar E7 com POST vazio. Interromper exposição se a resposta não recusar cadastro.
-5. Serviço web App: Git público, Build Path `/`, Dockerfile `deploy/easypanel/frontend.Dockerfile`; variável pública VITE_API_URL com IP e porta API confirmada. GIT_SHA fornecido pelo builder; Auto Deploy desligado; porta web confirmada → alvo 80.
-6. Deploy web; conferir version.json, rota profunda, origem API, login/precheck/refresh e rede sanitizada. Usar só dados fictícios enquanto HTTP. API também expõe UI upstream na raiz; URL comunicada para Allberto é a porta web.
-7. Executar E8/E9 pela UI/terminal do painel com dados de teste aprovados, dump não vazio e inventário alheio depois. Não executar `local-backend/smoke.mjs` nem specs upstream na VPS.
-8. Registrar SHA/digests/portas/data e preservar tag/imagem anterior. Rollback frontend para revisão anterior; backend sem troca de versão nesta fase. Nunca trocar APP_KEY/senhas DB com volumes existentes nem apagar serviço/volumes como rollback.
+1. Fechar inventário P1–P5 e condições D1–D4 do adendo HTTPS: dois hosts reais, certificados válidos, domínio do Compose associado ao nginx:80 e conectividade do proxy. Email administrador já foi fornecido ao coordenador. Não criar bindings de host nem inventar rede externa do painel.
+2. Publicar/referenciar commit revisado e tag identificada. Usar o projeto allberto, sem tocar projetos alheios.
+3. Serviço backend Compose: Git público, ref aprovada, Build Path `/deploy/easypanel`, arquivo `compose.yml`. Ambiente novo no editor e Create .env file ligado. `APP_URL=https://<host da API>`, sem barra final. Guardar APP_KEY fora do painel com o proprietário. Não reutilizar credenciais locais.
+4. `REQUIRE_HTTPS=true` fixo; `TRUSTED_PROXIES` tem default `*`, substituível por faixa verificada do proxy. Essa confiança depende de nenhuma porta direta publicada. App permanece somente na rede backend internal; nginx permanece em backend + edge. Não abrir egress do app nem adicionar uma rede externa presumida.
+5. Deploy backend e domínio HTTPS no nginx:80; conferir versão, volumes e H1–H4 (certificado, ausência de loop, HTTP→HTTPS e versão API). Testar E7 com POST vazio sem credenciais e GET /setup; interromper se cadastro não for recusado ou setup estiver aberto.
+6. Frontend pré-compilado conforme §15 abaixo: fonte Git, branch main, Build Path `/deploy/easypanel`, Dockerfile leve com URL e checksum da release versionados. Não executar build Node na VPS. Domínio HTTPS do web aponta para porta interna 80, sem publicação de host port; não há variáveis obrigatórias nem segredos no serviço web.
+7. Executar login/refresh, PDF/portal HTTPS, ausência de mixed content/CORS, E8/E9, dump e inventário alheio depois. Não executar smoke local nem specs upstream contra VPS.
+8. Registrar SHA/digests/hosts/data e preservar rollback. Nunca trocar APP_KEY/senhas DB com volumes existentes nem apagar serviços/volumes como rollback.
 
-Migração futura para allber.to segue seção 9 da arquitetura: dois subdomínios HTTPS, APP_URL/REQUIRE_HTTPS/proxies ajustados e rebuild frontend com a nova origem; retirar portas públicas. Nada disso foi executado.
+A migração futura do host temporário para allber.to altera APP_URL e origem frontend; links já emitidos podem deixar de valer. Antes de dados reais ainda são necessários backup externo com restauração testada e guarda da APP_KEY. Nenhuma dessas verificações remotas foi executada pelo Astra.
 
 ## Limites
 
-Artefatos testados em arm64 local, não no provável amd64 da VPS. Portas, recursos e inventário do painel continuam pendentes. O proprietário definiu o e-mail do administrador fora dos documentos públicos. Homologação HTTP não autoriza dados reais. Sem envio externo, gateway, backup automatizado ou restauração testada. E5 revisado passou localmente; a versão publicada e sua origem efetiva ainda precisam da conferência remota.
+Artefatos testados em arm64 local. O inventário posterior do operador confirmou VPS amd64 e os recursos descritos em `easypanel-live-inventory.md`; execução do backend nessa arquitetura continua pendente. O proprietário definiu o e-mail do administrador fora dos documentos públicos. Sem envio externo, gateway, backup automatizado ou restauração testada. E5 revisado passou localmente; a versão publicada, sua origem efetiva e os fluxos HTTPS ainda precisam da conferência remota.
 
 Fonte congelada para revisão Fable. `git diff --check` passou. Logs em /tmp foram preservados; nenhum segredo real foi gerado ou copiado para os artefatos.
 
@@ -96,3 +96,69 @@ Fonte congelada para revisão Fable. `git diff --check` passou. Logs em /tmp for
 Build final exit 0; script E5/self-checks exit 0; nginx -t exit 0; rotas/cache/404/version e gzip dos quatro tipos passaram. Evidências finais: `frontend-build-final.log`, `bundle-check-final.log`, `frontend-nginx-test-final.log`, `http-checks-final.json` em `/tmp/allberto-easypanel-validation/`. Fonte congelada novamente para revisão. Nenhuma mudança em src/tests/local-backend, nenhum acesso remoto ou publicação de imagem.
 
 **Fechamento do coordenador:** Fable aceitou o delta final sem achados pendentes nos artefatos. Segredos deverão ficar somente no ambiente do serviço backend, nunca no nível do projeto, pois o EasyPanel fornece as variáveis de projeto também aos builds do web. O aceite não inclui execução na VPS; veja [parecer final](../reviews/fable-easypanel-artifacts.md).
+
+## Ajuste HTTPS — adendo §14
+
+Removidos `nginx.ports` e API_PORT; REQUIRE_HTTPS fixado em true; TRUSTED_PROXIES interpolado com default `*`; env.example orienta APP_URL HTTPS. Redes e volumes preservados. Somente compose.yml, env.example e este handoff alterados nesta tarefa. Validação efetiva do Compose com valores fictícios confirma zero ports, app somente na rede internal, nginx em backend/edge, nenhuma rede externa e os valores HTTPS/proxy. Também foi verificada a substituição do wildcard por faixa fornecida no ambiente. Não foram gerados segredos, iniciados containers ou feitos builds. Certificados/roteamento/loops e links HTTPS continuam pendentes no painel.
+
+Check HTTPS: `python3 /tmp/allberto-easypanel-validation/check-https.py`, exit 0; evidência sanitizada `/tmp/allberto-easypanel-validation/https-compose-check.log`. `git diff --check` também passou. O script apenas lê `docker compose config --format json` em memória com placeholders, sem imprimir ambiente expandido.
+
+## Frontend pré-compilado — adendo §15
+
+Implementado `deploy/easypanel/Dockerfile`, separado do gerador `frontend.Dockerfile`. O novo arquivo usa somente nginx:alpine, baixa DIST_URL, confere DIST_SHA256 com sha256sum -c, extrai os arquivos na raiz web e remove o tar.gz. Reutiliza frontend.conf e healthcheck já aprovados. Não instala Node na VPS.
+
+**Defaults definitivos versionados:** DIST_URL aponta para o asset público da release `web-52db1b5423ea-1` e DIST_SHA256 contém o checksum abaixo. O serviço web não precisa fornecer esses argumentos. O coordenador publicou a release como pré-lançamento; nenhum deploy na VPS é afirmado por este handoff.
+
+- Release: https://github.com/allber-to/web/releases/tag/web-52db1b5423ea-1
+- Asset: https://github.com/allber-to/web/releases/download/web-52db1b5423ea-1/allberto-web-52db1b5423ea.tar.gz
+- Fonte do pacote: `52db1b5423eafac06d43c38b710f23b6a5fdc6c4`, obtida por git archive em contexto temporário isolado.
+- SHA-256: `5f9d3b717d30706d82c8d4ba66e7cf8ebcb49fa0ef695c1630dce4b94e351f02`.
+- Tamanho: 15.276.656 bytes.
+- API embutida: `https://allberto-backend.cxfujw.easypanel.host`.
+- Host web previsto: `https://allberto-web.cxfujw.easypanel.host`.
+- version.json: revision igual ao SHA de fonte; builtAt `2026-11-19T15:57:42.232Z`.
+
+W1 passou por download HTTPS anônimo conferido pelo coordenador, tamanho e checksum exatos; evidência `/tmp/allberto-easypanel-release/public-download-check.json`. W2 passou sobre o pacote extraído, com a origem real; E5 não encontrou endereço local proibido nem assinatura de segredo. Os 11 contextos inertes continuam nas categorias aprovadas pelo CTO. Logs `/tmp/allberto-easypanel-release/{build.log,bundle-package-check.log,release-summary.json}`.
+
+### Empacotamento local depois de receber host e SHA reais
+
+O operador deve preencher API_ORIGIN e SOURCE_SHA com os valores confirmados, e executar sobre o checkout da revisão que gerará o pacote. Estes comandos apenas constroem/extraem localmente; não publicam release:
+
+```sh
+set -eu
+API_ORIGIN='https://HOST-REAL-DA-API'
+SOURCE_SHA='SHA-COMPLETO-DA-REVISAO-PUBLICADA'
+test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+PACKAGE_DIR=$(mktemp -d /tmp/allberto-web-package.XXXXXX)
+docker --context desktop-linux build --target build \
+  -f deploy/easypanel/frontend.Dockerfile \
+  --build-arg VITE_API_URL="$API_ORIGIN" --build-arg GIT_SHA="$SOURCE_SHA" \
+  -t "allberto-web-dist:$SOURCE_SHA" .
+DIST_CONTAINER=$(docker --context desktop-linux create "allberto-web-dist:$SOURCE_SHA")
+docker --context desktop-linux cp "$DIST_CONTAINER:/app/dist" "$PACKAGE_DIR/dist"
+docker --context desktop-linux rm "$DIST_CONTAINER"
+VITE_API_URL="$API_ORIGIN" node deploy/easypanel/verify-bundle.mjs "$PACKAGE_DIR/dist"
+COPYFILE_DISABLE=1 tar -czf "$PACKAGE_DIR/allberto-web-${SOURCE_SHA}.tar.gz" -C "$PACKAGE_DIR/dist" .
+shasum -a 256 "$PACKAGE_DIR/allberto-web-${SOURCE_SHA}.tar.gz"
+```
+
+O coordenador publica esse tar.gz como asset de release pública marcada pré-lançamento, com tag própria apontando ao SOURCE_SHA. Descrição: SHA, origem pública da API e checksum. Em seguida insere os dois defaults reais no novo Dockerfile e publica o commit. Confirmar W1 baixando o arquivo público e recalculando o hash; confirmar W2 extraindo o pacote e repetindo verify-bundle com a origem real. Nada de dados locais ou .env no pacote.
+
+Serviço web definitivo: Git allber-to/web, branch main, Build Path `/deploy/easypanel`, Dockerfile padrão. Sem variáveis obrigatórias quando os defaults reais estiverem versionados, sem segredos, domínio HTTPS para porta interna 80 e Auto Deploy desligado. O SHA dentro do pacote é o commit que gerou dist; o commit posterior que fixa URL/hash pode ser diferente. Rollback reverte URL/hash para release anterior preservada.
+
+### W5 e controle positivo local
+
+Foi usado o próprio novo Dockerfile, com fixture tar.gz contendo apenas index.html e servidor HTTP temporário em loopback 18091, alcançado do builder por host.docker.internal. Não foi utilizado pacote real ou release pública.
+
+- Hash incorreto: build falhou na linha sha256sum, com FAILED; assert confirmou exit não zero e que a falha foi checksum, não download. **W5 PASS**.
+- Hash correto da mesma fixture: build exit 0; nginx -t exit 0. Controle positivo confirma que o arquivo é baixado e extraído normalmente quando íntegro.
+- Evidências isoladas em `/tmp/allberto-easypanel-w5/{wrong-hash.log,correct-hash.log,nginx-test.log}`; evidências anteriores preservadas.
+- Container de nginx de verificação foi criado com --rm; servidor HTTP de fixture foi encerrado. Nenhum serviço existente foi parado.
+
+W1 e W2 definitivos passaram com a release real, conforme atualização acima. W3 e W4 publicados continuam pendentes do deploy; W5 prova somente a recusa local de hash incorreto. Nenhuma imagem foi publicada em registro e o Astra não acessou a VPS.
+
+### Validação da release pública com defaults reais
+
+Novo Dockerfile construído **sem build args**, somente defaults versionados: exit 0, wget HTTPS concluiu, sha256sum exibiu `/tmp/allberto-web.tar.gz: OK`, pacote extraído e arquivo temporário removido. Imagem local não contém Node. `nginx -t` exit 0 e GET local `/version.json` retornou a revisão `52db1b5423eafac06d43c38b710f23b6a5fdc6c4` com cache no-store. Não foi repetido build Node nem o teste W5 de fixture.
+
+Evidências: `/tmp/allberto-easypanel-release/lightweight-build.log`, `lightweight-nginx-test.log` e `lightweight-check.json`. Container próprio temporário `allberto-release-defaults-check` usou loopback 18092 e foi removido; runtime local anterior preservado. Fonte congelada, `git diff --check` passou. W3/W4 na VPS e deploy web continuam condicionados à validação H1–H4 do backend pelo operador.
