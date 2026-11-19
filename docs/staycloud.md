@@ -4,17 +4,18 @@ Publicado em 19/11/2026 no EasyPanel 2.33.1 existente em `http://192.102.140.18:
 
 | Serviço | Endereço |
 | --- | --- |
-| Frontend Allberto | https://allber.to |
-| Host adicional do frontend | https://www.allber.to |
+| Administrativo Allberto | https://painel.allber.to |
+| Domínio destinado ao futuro site (alias de transição) | https://allber.to |
+| www do futuro site (alias de transição) | https://www.allber.to |
 | API / portal de clientes | https://api.allber.to |
 | Frontend temporário preservado | https://allberto-web.cxfujw.easypanel.host |
 | Backend temporário preservado | https://allberto-backend.cxfujw.easypanel.host |
 
-Para operar o sistema, abrir **https://allber.to**. `www` serve o mesmo frontend diretamente, sem redirecionamento por preferência do proprietário; alternar entre as origens pode exigir login separado. A raiz da API ainda oferece a interface original incluída na imagem do Invoice Ninja, e os caminhos do portal continuam com o design upstream. API e novo frontend administrativo usam os mesmos dados.
+Para operar o sistema, abrir **https://painel.allber.to**. O proprietário destinou `allber.to` ao futuro site público; apex e `www` ainda servem o mesmo frontend como aliases de transição, sem redirecionamento. Quando o site existir, trocar os destinos desses dois hosts no EasyPanel, preservando painel/API. Alternar entre as origens pode exigir login separado. A raiz da API ainda oferece a interface original incluída na imagem do Invoice Ninja, e os caminhos do portal continuam com o design upstream. API e novo frontend administrativo usam os mesmos dados.
 
 Na publicação inicial pelos hosts temporários, saúde, certificados, versão da API, login/refresh, CORS, login pela interface, rotas profundas, PDF e persistência após redeploy passaram. O incidente de perda de preço ao avançar rapidamente foi corrigido, testado e revisado; o pacote v2 foi implantado e conferido na interface. O cliente e o rascunho fictícios foram arquivados reversivelmente ao fim, deixando zero clientes e faturas ativos. O [CTO aprovou a entrega de homologação](reviews/fable-easypanel-runtime.md); a [story 003](stories/003-easypanel-deploy.md) registra evidências e limites. Backup externo e restauração continuam necessários antes de dados reais.
 
-Na migração de domínio, API autenticada, dados preservados, link do portal, PDF, TLS e arquivos do frontend foram conferidos. O login no domínio próprio pelo Chrome ainda está pendente: a primeira navegação expirou, sem entrada de credenciais, enquanto a resolução do macOS ainda devolvia estacionamento. Endpoints do novo container web estão respondendo; nenhuma mudança extra de DNS/serviço foi feita para contornar isso. Veja a [revisão da migração](reviews/fable-custom-domain-runtime.md).
+Na migração de domínio, API autenticada, dados preservados, link do portal, PDF, TLS e arquivos do frontend foram conferidos. A primeira navegação no apex expirou, sem entrada de credenciais, enquanto a resolução do macOS ainda devolvia estacionamento. Depois o proprietário escolheu `painel.allber.to`: DNS local normal, TLS e versão desse host passaram, sem recompilar/reimplantar. O login pelo Chrome nesse endereço permanece pendente: o controle nativo encontrou outra janela em uso e parou antes de navegar ou digitar credenciais. Veja a [revisão da migração](reviews/fable-custom-domain-runtime.md).
 
 A integração local foi concluída com Invoice Ninja 5.13.49: [aceite CTO](reviews/fable-local-backend.md). Ela cobre autenticação de administrador, dados persistidos, pagamento manual e PDF, com e-mails apenas em log. O histórico de e-mails do cliente/fatura depende de eventos de provedor e ainda deve ser validado em homologação com transporte real. A topologia local sem saída externa não é uma configuração de produção.
 
@@ -32,8 +33,8 @@ O novo painel também consulta `/api/v1/charts/analytics_totals`. Essa rota e `/
 - Projeto `allberto`, Compose `backend` com Invoice Ninja 5.13.49, nginx, MySQL e Redis; quatro volumes persistentes.
 - MySQL e Redis exclusivamente na rede interna. O app usa backend + egress própria para saída normal à internet; não há filtro por destino. Só nginx alcança as redes do proxy; nenhuma porta do projeto é publicada diretamente no host.
 - Sentry do upstream desativado e autoatualização bloqueada, ambos conferidos na configuração efetiva. Atualizações devem passar pelo repositório e deploy, mantendo a imagem fixada.
-- Hosts próprios HTTPS: apex/www no web e api no nginx do backend, além dos temporários preservados. `APP_URL` e `company.portal_domain` são `https://api.allber.to`; `REQUIRE_HTTPS=true`. CORS aceita o frontend com token; confiança no proxy depende de não abrir porta direta do nginx.
-- Cloudflare DNS only: A apex/api `192.102.140.18`, CNAME www `allber.to`, TTL Auto. NS `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`; cinco MX e SPF anteriores preservados. Não havia destinatário de encaminhamento configurado na Namecheap. DNSSEC e IPv6 não foram adicionados.
+- Hosts próprios HTTPS: painel e aliases de transição apex/www no web; api no nginx do backend, além dos temporários preservados. `APP_URL` e `company.portal_domain` são `https://api.allber.to`; `REQUIRE_HTTPS=true`. CORS aceita o frontend com token; confiança no proxy depende de não abrir porta direta do nginx.
+- Cloudflare DNS only: A apex/api/painel `192.102.140.18`, CNAME www `allber.to`, TTL Auto. NS `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`; cinco MX e SPF anteriores preservados. Não havia destinatário de encaminhamento configurado na Namecheap. DNSSEC e IPv6 não foram adicionados.
 - `TRUSTED_PROXIES=*` é provisório. Antes de dados reais ou de adicionar outros serviços ao painel, restringir a confiança ao proxy observado, conforme o parecer do CTO.
 - Conta inicial vazia configurada para Allberto, pt_BR, BRL e Brasil. Sem dados fiscais ou endereços inventados.
 - Na validação completa anterior ao último deploy web: cinco containers ativos, quatro healthy (nginx do backend sem healthcheck), nenhum reinício ou OOM. Memória pontual somada de aproximadamente 1,15 GiB. No novo container web, healthz/version conferidos e memória indicada no painel de 4,4 MB; inspect completo não repetido após essa troca. Não são testes de carga ou medições de pico.

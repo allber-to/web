@@ -1,10 +1,10 @@
 # 004 — Domínio próprio na Cloudflare e EasyPanel
 
-**Estado:** em andamento. DNS delegado à Cloudflare StayCloud, três hosts HTTPS cadastrados e backend migrado para `https://api.allber.to`. Login/API e preservação dos dados conferidos. Portal da empresa atualizado, PDF aprovado e frontend publicado. Login real no navegador pendente por divergência da resolução local. O proprietário autorizou DNS, ligação ao EasyPanel e migração do aplicativo.
+**Estado:** publicado em `https://painel.allber.to`, com backend/portal em `https://api.allber.to`. DNS e HTTPS do painel confirmados por resolução local normal; versão, arquivos e preflight aprovados. Apex/www são aliases de transição destinados ao futuro site. A última pendência funcional é o login no Chrome (D8/P4), interrompido por mudança de janela antes de digitar credenciais. O proprietário autorizou DNS, ligação ao EasyPanel e migração do aplicativo.
 
 ## Escopo
 
-- Painel Allberto no domínio principal; API e portal em `api.allber.to`.
+- Painel administrativo em `painel.allber.to`, conforme orientação posterior do proprietário para reservar a raiz ao futuro site público; API e portal em `api.allber.to`.
 - Zona Cloudflare no plano gratuito, com nameservers atribuídos à zona e delegação na Namecheap.
 - Preservar registros de e-mail e configurações alheias; trocar somente o destino web necessário.
 - Adicionar hosts HTTPS aos serviços existentes, com `www` como host adicional do painel conforme a preferência posterior do proprietário, e manter os hosts temporários disponíveis durante a migração.
@@ -122,3 +122,25 @@ O operador conferiu no novo container web `healthz=ok` e `version.json` com revi
 Às 18:25 UTC o `dig` padrão já consultava a resposta correta da 1.1.1.1, assim como a 8.8.8.8, mas `getaddrinfo` do macOS continuava devolvendo o estacionamento e o curl sem resolução explícita falhou. Uma limpeza não privilegiada por `dscacheutil -flushcache` não mudou a resposta; o comando de sinalização do resolvedor com `sudo -n` foi recusado por exigir senha, sem executar a operação privilegiada. Não foram alterados DNS global, hosts, VPN ou configurações de navegador. O proprietário recebeu a opção de limpar o cache local autenticando apenas no Terminal ou aguardar sua expiração.
 
 D8 continua pendente, sem inferir defeito ou sucesso do aplicativo desse timeout. A [revisão do CTO](../reviews/fable-custom-domain-runtime.md) aceita os demais critérios e distingue saúde dos endpoints, inspeção dos containers e propagação. Não há necessidade de refazer DNS, certificado ou implantação.
+
+
+## Alteração de escopo — endereço administrativo `painel.allber.to`
+
+Após informar que executou a limpeza de cache, o proprietário solicitou um subdomínio `dash` ou `painel` porque o domínio principal terá o site, autorizando alterações na Cloudflare. Adotado `painel.allber.to` como único novo endereço administrativo. O primeiro assert local do apex após essa confirmação ainda não resolveu para a VPS; a limpeza não foi declarada bem-sucedida e nenhuma ação global adicional foi feita.
+
+O operador recebeu autorização para reconciliar/criar A `painel` → `192.102.140.18`, DNS only/TTL Auto, na mesma zona StayCloud; o domínio HTTPS no web será cadastrado depois da verificação DNS pública. Não precisa novo pacote: a origem compilada da API permanece `https://api.allber.to`, e o nginx atende o host adicional. Sem nova implantação, ambiente ou serviço. Apex/www permanecem aliases de transição até haver o site público substituto; o site em si não foi solicitado para implementação nesta etapa.
+
+D8 passa a ser o login no endereço administrativo `painel.allber.to`. O CTO registrou critérios P1–P5 no [adendo de revisão](../reviews/fable-custom-domain-runtime.md): DNS, TLS, revisão/HTML, login e preservação dos hosts existentes. As origens mantêm sessões independentes.
+
+
+P1 aprovado às 18:31:55 UTC: os dois autoritativos Cloudflare, 1.1.1.1, 8.8.8.8 e a resolução local do macOS retornaram `192.102.140.18` para `painel.allber.to`. O operador cadastrou o host HTTPS uma única vez no web existente; lista confirmou destino `http://allberto_web:80/`, sem implantação/ambiente/redirect adicionais.
+
+P2–P3 aprovados usando DNS local normal, **sem `--resolve`**: certificado válido e HTTP 200 em sete caminhos (versão, raiz, dashboard, clients, healthz e dois chunks). Revisão `d8a873829cbbc2ba1f71df71b0022829e2568443`; HTML e JavaScript idênticos ao pacote verificado. Evidências `/tmp/allberto-custom-domain-release/painel-dns-check.json` e `painel-https-check.json`. Operador liberado para login somente depois dessa confirmação.
+
+
+P5 aprovado: os quatro hosts existentes continuam HTTP 200/TLS válido e os três hosts do frontend entregam o mesmo HTML do pacote; apex/www conferidos com resolução explícita devido ao histórico de cache local. Preflight `OPTIONS /api/v1/refresh` com origem `https://painel.allber.to` aceita POST e os cabeçalhos do cliente, incluindo X-API-TOKEN. Evidência `/tmp/allberto-custom-domain-release/painel-hosts-preflight-check.json`. O sucesso desse preflight por script não substitui o login no navegador.
+
+O operador confirmou na Visão Geral da zona Cloudflare **Configuração de DNS: Completo**, sem botão/pendência de verificação; não precisou acionar novo check nem ligar proxy. Ao iniciar a abertura do painel no Chrome, a observação retornou outra janela, de reunião. Interrompeu imediatamente antes de digitar a URL ou qualquer credencial. Nenhuma tentativa de login falhou: P4 ainda não foi executado. O proprietário recebeu a escolha de liberar a janela para concluir ou encerrar com essa limitação explícita. Handoff do operador está estável, sem nova implantação necessária.
+
+
+O [CTO aceitou P1, P2, P3 e P5](../reviews/fable-custom-domain-runtime.md), mantendo P4/D8 não executado. Os detalhes ausentes no JSON de preflight foram completados por uma nova leitura (200, URL/origem/método/cabeçalhos explícitos); API própria também relida com raiz 200/TLS válido/versão 5.13.49. A asserção original de zero redirects do painel foi explicitada no arquivo de evidência. Nenhuma mudança de runtime resultou dessa precisão documental.

@@ -4,7 +4,7 @@ Data: 19/11/2026. Revisor: Claude Fable 5.2, como CTO. Base: `main` em `631de138
 
 ## Veredito
 
-**Migração aceita em serviço, TLS, backend e pacote publicado. D8 (login real no navegador) continua pendente: a única tentativa não chegou ao aplicativo. A story 004 não deve ser fechada antes dele.**
+**Migração aceita em serviço, TLS, backend e pacote publicado, agora também em `painel.allber.to` (P1, P2, P3 e P5 aceitos; ver o suplemento no fim). O login real no navegador (D8, hoje P4) continua pendente e não foi executado no novo host. A story 004 não deve ser encerrada como login aprovado.**
 
 Dez dos onze critérios estão atendidos. Nenhum achado bloqueia. O ambiente continua sendo homologação: o domínio próprio não o torna apto a dados reais.
 
@@ -115,3 +115,73 @@ Continuam valendo os da revisão `fable-easypanel-runtime.md`: sem backup extern
 1. Refazer D8 quando a resolução local estiver correta, ou a partir de outra rede, com a confirmação de que a página era o Allberto.
 2. Commitar a documentação pendente, incluindo as correções dos achados 3 e 4.
 3. Opcional: repetir a inspeção dos cinco containers, para ter uma medição posterior ao deploy do web.
+
+## Adendo de escopo — painel em `painel.allber.to`
+
+Registrado em 19/11/2026, depois da revisão acima e antes de qualquer resultado. Não repeti testes nem abri interface.
+
+**Decisão do proprietário:** `allber.to` será o site. O painel administrativo passa a ter host próprio, `painel.allber.to`. `api.allber.to` continua sendo backend e portal do cliente. Apex e `www` seguem servindo o painel só como transição, até existir um site para ocupá-los; os hosts temporários ficam.
+
+**O que muda:** um registro A `painel` para `192.102.140.18`, somente DNS, TTL automático; e mais um domínio HTTPS no serviço `web`, porta 80. Nada além disso.
+
+**Por que não precisa de novo pacote, deploy ou variável de ambiente.** Conferi por leitura:
+
+- o nginx do web usa `server_name _`, então atende qualquer nome de host;
+- no pacote publicado, a única ocorrência de `allber.to` é a origem da API; não há referência ao apex nem a `www` em JavaScript, HTML ou JSON;
+- o backend aceita qualquer origem com token em cabeçalho, como já registrado. A confirmação disso no navegador continua sendo o login real.
+
+### Critérios adicionais
+
+| # | Critério | Evidência |
+| --- | --- | --- |
+| P1 | `painel.allber.to` resolve publicamente para `192.102.140.18`; os demais registros, incluindo MX e SPF, iguais aos de D1 | consulta pública de DNS, antes e depois |
+| P2 | `https://painel.allber.to` responde com certificado válido para esse nome | requisição com validação TLS ativa |
+| P3 | `version.json` em `painel.allber.to` traz a revisão `d8a873829cbb…`; raiz e uma rota profunda entregam o mesmo HTML do pacote, sem redirect | status, revisão e hash iguais aos de D6 |
+| P4 | Login em `https://painel.allber.to`, Painel carregado, sem erro de CORS nem conteúdo misto | status das chamadas, sem corpos |
+| P5 | Apex, `www`, `api` e os dois temporários continuam respondendo como antes | uma requisição a cada |
+
+**D8 passa a ser P4.** O login real é testado em `painel.allber.to`, por instrução do proprietário. O apex deixa de ser o alvo desse teste.
+
+### Observações
+
+- **Sessões por origem.** A sessão do painel fica guardada no navegador por origem. Login em `painel.allber.to` não vale para apex, `www` nem para o host temporário, e vice-versa. Quando o apex virar site, quem tinha sessão lá perde só a sessão; os dados estão no backend.
+- **Resolução local.** `painel` é um nome novo, sem resposta antiga em cache, como aconteceu com `api`, que resolveu certo de imediato. É razoável esperar o mesmo, mas é expectativa, não resultado. O proprietário informou ter limpado o cache do macOS e a conferência do apex ainda falhou; o problema do apex neste Mac **não está dado como resolvido** e deixa de bloquear o login, já que o teste mudou de host.
+- **Favoritos e links no apex.** Enquanto o apex for alias, quem salvar `allber.to/…` como endereço do painel terá o link quebrado quando o site entrar. Divulgar só `painel.allber.to`.
+- **Links do portal do cliente** não mudam: saem de `api.allber.to`.
+- **Rollback:** remover o domínio no painel do EasyPanel e o registro A. Nenhum outro host depende dele.
+
+A documentação canônica (arquitetura e story) ainda descreve o apex como endereço do painel; o coordenador informou que será atualizada no fechamento. A revisão final fica para depois dos resultados de P1–P5.
+
+## Suplemento — resultados de `painel.allber.to`
+
+Revisão curta, só por leitura das três evidências novas (`painel-dns-check.json`, `painel-https-check.json`, `painel-hosts-preflight-check.json`) e dos documentos atualizados. Não fiz consultas, não abri interface e não repeti hashes: comparei os valores registrados com os que recalculei no pacote local na revisão acima.
+
+| # | Resultado | Base |
+| --- | --- | --- |
+| P1 — DNS | **Aceito** | 18:31 UTC: os dois autoritativos da Cloudflare, `1.1.1.1`, `8.8.8.8` e a resolução normal do macOS devolvem `192.102.140.18`. A parte "demais registros iguais" vem da leitura do operador na Cloudflare (dez registros, os anteriores intactos), não de nova consulta pública. |
+| P2 — TLS | **Aceito** | Sete respostas em HTTPS com resolução normal, sem endereço explícito, todas com certificado válido e chegando à VPS. |
+| P3 — versão e HTML | **Aceito** | Revisão `d8a873829cbb…`; `version.json`, o HTML de `/`, `/dashboard` e `/clients` e os dois arquivos JavaScript têm exatamente os hashes do pacote local. `healthz` 200. |
+| P4 — login real | **Não executado** | Ver abaixo. |
+| P5 — hosts existentes | **Aceito** | Apex, `www` e os dois temporários respondem 200 com certificado válido. O preflight devolve origem `*`, os métodos usados pelo aplicativo e os cabeçalhos de autenticação e de conteúdo. |
+
+**O que melhorou em relação à revisão principal.** Para `painel.allber.to`, serviço e resolução estão provados juntos: é o primeiro host do frontend validado pelo caminho normal deste computador, sem resolução explícita. O preflight também cobre parte do que eu havia deixado inteiro para o navegador: o backend aceita a requisição prévia de CORS.
+
+**P4.** Ao abrir uma aba para o painel, o operador encontrou em foco uma janela alheia e parou. Nenhum endereço foi digitado e nenhuma credencial foi enviada. Não é falha do aplicativo nem aprovação: o teste não começou. O coordenador perguntou ao proprietário se libera o Chrome ou prefere concluir com o login pendente; não há resposta, e a ausência dela não é escolha.
+
+**Limites das evidências novas**
+
+- O registro de preflight não traz a URL, o status nem a origem enviada na requisição. A resposta `*` independe da origem, então a conclusão se mantém, mas a evidência é menos completa que as demais.
+- `api.allber.to` não aparece na lista de hosts existentes de P5. Considero coberto pelo preflight, que é dirigido ao backend, e pelas onze chamadas de D4.
+- O arquivo do painel não registra contagem de redirecionamentos, como o do apex registrava. Os hashes idênticos mostram que o conteúdo final é o do pacote.
+- A igualdade de HTML entre os três hosts do frontend em P5 está na story; o JSON de P5 traz só status e certificado. Para o painel, o hash está em P3.
+- Apex e `www` continuam conferidos com resolução explícita. O estado deles no resolvedor deste Mac segue sem confirmação e deixou de importar para o login.
+- Preflight aceito não substitui o navegador: conteúdo misto, armazenamento da sessão e o fluxo de login só P4 exercita.
+
+**Documentação.** Arquitetura, story, README e `docs/staycloud.md` já tratam `painel.allber.to` como endereço administrativo e apex e `www` como aliases de transição. O handoff registra a criação do registro, do domínio e a interrupção de P4. Essas alterações estão no checkout, ainda não commitadas.
+
+**Estado para o fechamento.** Sem novo build, deploy ou variável para o painel, como previsto. Dos critérios, só o login real fica aberto. A story pode registrar "publicado, login no navegador pendente"; não "login aprovado". Os limites da homologação seguem os mesmos.
+
+
+## Complemento do coordenador — precisão das evidências
+
+Após a revisão, o coordenador fechou os campos ausentes no registro de preflight: nova consulta `OPTIONS https://api.allber.to/api/v1/refresh`, origem `https://painel.allber.to`, método solicitado POST e cabeçalhos content-type/x-api-token/x-requested-with/x-react, resposta **200**, TLS válido. O JSON agora registra requisição e resposta separadamente. Acrescentou também `api.allber.to` aos hosts existentes conferidos: raiz 200/TLS válido e versão 5.13.49. O registro HTTPS do painel passou a explicitar a asserção original de status 200 e zero redirects em todos os caminhos (sem usar `-L`). Não houve alteração de configuração, dados ou implantação. Esses complementos são evidência do coordenador, não nova execução do CTO; **P4/D8 permanece pendente**.
