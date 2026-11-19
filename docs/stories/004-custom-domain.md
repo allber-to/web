@@ -1,6 +1,6 @@
 # 004 — Domínio próprio na Cloudflare e EasyPanel
 
-**Estado:** em andamento. Compra de `allber.to` e conta Cloudflare **StayCloud** confirmadas na interface. Zona gratuita criada e destino do apex atualizado na zona ainda pendente de delegação; demais registros, nameservers e domínios EasyPanel em configuração. O proprietário autorizou DNS, ligação ao EasyPanel e migração do aplicativo.
+**Estado:** em andamento. DNS delegado à Cloudflare StayCloud, três hosts HTTPS cadastrados e backend migrado para `https://api.allber.to`. Login/API e preservação dos dados conferidos. Portal da empresa atualizado, PDF aprovado e frontend publicado. Login real no navegador pendente por divergência da resolução local. O proprietário autorizou DNS, ligação ao EasyPanel e migração do aplicativo.
 
 ## Escopo
 
@@ -89,3 +89,36 @@ O proprietário orientou diretamente o operador a cadastrar domínios, sem redir
 O operador cadastrou `allber.to` e `www.allber.to` no web, destino HTTP porta 80, mantendo o host temporário e sem redirect. Às 18:00 UTC, o coordenador confirmou 200 e certificado válido nos dois hosts usando resolução explícita para `192.102.140.18`, mantendo validação normal de hostname/TLS (`ssl_verify_result=0`). Ambos ainda servem a versão anterior `f5cb28e`, esperado antes do deploy. A tentativa com resolução local padrão encontrou timeout/reset, compatível com caminho/cache DNS local ainda divergente; não foi alegada disponibilidade em todos os caches.
 
 A criação de `api.allber.to` foi interrompida antes de selecionar o serviço Compose e clicar Criar. A API ainda apresentou o certificado padrão não confiável; nenhuma credencial foi enviada para essa origem. O coordenador aguarda retomar o formulário em controle exclusivo ou confirmação de conclusão pelo proprietário. D2 permanece parcial; APP_URL e versão publicada ainda não foram trocados.
+
+
+## Backend migrado e domínio persistido do portal
+
+D2 foi concluído após o cadastro de `api.allber.to`: TLS válido, raiz/health 200, HTTP para HTTPS e setup para a nova raiz, sem laço. O operador aplicou somente `APP_URL=https://api.allber.to` no ambiente do backend, preservando as demais variáveis por comparação com a cópia privada anterior, e fez um deploy manual. D11 confirmou a nova URL, Sentry vazio, autoatualização desligada e e-mail em log; containers sem reinício/OOM, volumes e ausência de portas publicadas preservados.
+
+A API nova passou precheck/login/refresh e CORS. A comparação dos mesmos IDs confirmou empresa Allberto/BRL/Brasil, cliente e fatura fictícios arquivados, total 10/pago 0/status rascunho e zero registros ativos. Porém o link calculado do convite ainda tinha o host temporário. O CTO confirmou na fonte 5.13.49 que `ninja:create-account` persiste `company.portal_domain` na criação e `Inviteable::getLink` prioriza esse campo; mudar apenas APP_URL não migra os links existentes.
+
+Aplicado um único `PUT /api/v1/companies/VolejRejNm` com somente `portal_domain=https://api.allber.to` e `portal_mode=domain`. O segundo campo, com o mesmo valor anterior, ativa a validação de URL do backend. Não foi enviada a chave `settings`: além de desnecessária, a fonte tem um ramo que pode remover o logotipo quando ela é enviada incompleta. Comparação integral antes/depois mostrou somente `portal_domain` e `updated_at` diferentes; settings, modo/subdomínio, chaves de convite e itens da fatura permaneceram iguais. O link calculado passou para `https://api.allber.to`. Evidência sanitizada: `/tmp/allberto-custom-domain-release/backend-after-domain.json`.
+
+O primeiro download sem token retornou 403. O CTO confirmou depois na fonte que essa rota exige `token_auth`; o arquivamento não causou a resposta. Nenhum novo registro, envio ou pagamento foi feito.
+
+
+D5 concluído pelo fluxo autenticado usado pelo frontend: `useDownloadPdf` envia o token administrativo na mesma rota pública de download. Com esse cabeçalho, a fatura arquivada retornou HTTP 200/application-pdf, sem restaurar cliente ou fatura. PDF de uma página renderizado e inspecionado: item correto, quantidade 1, total R$ 10,00, marca upstream preservada e nenhuma imagem quebrada. O 403 anterior foi a tentativa anônima; não foi contornado por mudança de dados. O arquivo privado e a imagem não foram adicionados ao Git.
+
+
+A PR [#7](https://github.com/allber-to/web/pull/7) foi retirada de rascunho e mesclada em `631de138629c07afdca9f770a2184d81f7520682`, após CI verde no head exato `2251e1b81749fef690eec3d8042b964a7992141c` e D3–D5. O operador recebeu autorização para um único deploy manual do web e login de leitura na nova origem. Nenhum novo deploy backend é necessário para a configuração de portal persistida.
+
+
+## Frontend publicado — versão e arquivos conferidos
+
+O operador acionou uma única implantação manual do web; histórico PR7, conclusão em 5 segundos, sem novos ambientes/argumentos. D6, D9 e D10 passaram em 14 verificações externas: apex e www entregam `version.json` com revisão `d8a873829cbbc2ba1f71df71b0022829e2568443`, healthz responde 200 e raiz/dashboard/clients entregam o mesmo HTML do pacote, sem redirect entre hosts. O JavaScript de entrada e o chunk que contém a origem da API têm SHA-256 igual aos arquivos locais; a origem é `https://api.allber.to`, sem referência temporária nesse chunk. Os dois hosts temporários continuam respondendo; o frontend temporário entrega o pacote novo. Evidência: `/tmp/allberto-custom-domain-release/frontend-final-check.json`.
+
+A verificação de apex/www usou `curl --resolve` para `192.102.140.18` com validação TLS normal, sem `-k`. O resolvedor local do Mac ainda retornava estacionamento, apesar de autoritativos e resolvedores públicos já corretos. Essa prova confirma o serviço/certificado na VPS, não a expiração de todos os caches; o login real no Chrome é registrado separadamente. Nenhuma alteração global de DNS, hosts ou resolução do computador foi feita.
+
+
+## D8 pendente — navegador e resolução local
+
+O operador conferiu no novo container web `healthz=ok` e `version.json` com revisão esperada, sem repetir o inspect completo dos cinco containers. A primeira navegação do Chrome para `https://allber.to` terminou em `ERR_CONNECTION_TIMED_OUT`; não carregou aplicativo ou estacionamento. Nenhuma credencial foi digitada e não houve reload ou novo deploy.
+
+Às 18:25 UTC o `dig` padrão já consultava a resposta correta da 1.1.1.1, assim como a 8.8.8.8, mas `getaddrinfo` do macOS continuava devolvendo o estacionamento e o curl sem resolução explícita falhou. Uma limpeza não privilegiada por `dscacheutil -flushcache` não mudou a resposta; o comando de sinalização do resolvedor com `sudo -n` foi recusado por exigir senha, sem executar a operação privilegiada. Não foram alterados DNS global, hosts, VPN ou configurações de navegador. O proprietário recebeu a opção de limpar o cache local autenticando apenas no Terminal ou aguardar sua expiração.
+
+D8 continua pendente, sem inferir defeito ou sucesso do aplicativo desse timeout. A [revisão do CTO](../reviews/fable-custom-domain-runtime.md) aceita os demais critérios e distingue saúde dos endpoints, inspeção dos containers e propagação. Não há necessidade de refazer DNS, certificado ou implantação.
