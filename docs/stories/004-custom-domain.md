@@ -67,3 +67,11 @@ Antes de qualquer migração do backend, a leitura autenticada da API temporári
 Pacote local preparado e verificado: `allberto-web-d8a873829cbb.tar.gz`, 15.271.381 bytes, SHA-256 `7a893ca6a434f7f4344ba816b619009ada06b6519b9abce288bfac21033812f6`. O coordenador recalculou o checksum e confirmou o valor do [handoff Astra](../handoffs/astra-custom-domain.md). A origem `https://api.allber.to` está no bundle; publicação e testes do domínio continuam dependentes da operação nas contas.
 
 O [CTO aceitou os artefatos do domínio](../reviews/fable-custom-domain-artifacts.md), conferindo os dois hashes, versão, extração e ausência da origem temporária no JavaScript. Autorizou preparar PR em rascunho e comprovar o build leve no deploy: a receita não mudou e download/hash/extração já foram verificados por outros caminhos. Isso não libera deploy antecipado do web; a nova API deve responder com TLS válido antes da troca. Nenhum aplicativo local foi aberto para recuperar Docker durante o controle do Chrome.
+
+## Zona preparada, delegação aguardando Save
+
+A zona Cloudflare terminou com nove registros: A apex/API para `192.102.140.18`, CNAME `www` para `allber.to` (três em DNS only/TTL Auto), cinco MX e SPF preservados. Os nameservers atribuídos são **`jerry.ns.cloudflare.com`** e **`melinda.ns.cloudflare.com`**.
+
+O coordenador consultou os autoritativos da Cloudflare e confirmou os destinos A/CNAME e os cinco MX/SPF esperados. A consulta recursiva pública ainda devolveu os NS da Namecheap; isso não foi tratado como delegação concluída.
+
+Na Namecheap, o operador abriu Custom DNS, mas o controle nativo expirou durante o primeiro preenchimento e novamente na recuperação. **Save não foi acionado por ele.** O coordenador solicitou ao proprietário preencher os dois NS acima e salvar, sem pedir senha ou nova autorização de configuração. Nenhuma mudança EasyPanel/APP_URL/deploy ocorreu nessa etapa. O estado incerto do primeiro campo será reconciliado por observação/confirmacão; não repetir a criação da zona.

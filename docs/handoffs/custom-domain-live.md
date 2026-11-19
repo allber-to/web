@@ -2,7 +2,7 @@
 
 Data: 19/11/2026. Operador Chrome: `777a7c50-10d2-44c7-a090-a6ec475c5f59`. Coordenador: `ecdf0c57-bcde-43e8-9066-dc595b02857f`.
 
-Estado: **CUA parado após a única retomada limpa autorizada**, por nova interrupção de controle. Domínio **allber.to ativo** e conta Cloudflare **StayCloud** confirmados. **Zona Free allber.to criada e A apex alterado na Cloudflare, ainda sem troca dos NS na Namecheap.** Edição de CNAME www interrompida, resultado incerto; A api ainda ausente. EasyPanel não alterado. Não criar uma segunda zona ao retomar.
+Estado atual: **zona Free allber.to configurada na conta StayCloud**, com A apex e api → `192.102.140.18`, CNAME www → `allber.to`, todos DNS only/TTL Auto; cinco MX e SPF preservados. NS atribuídos: **jerry.ns.cloudflare.com** e **melinda.ns.cloudflare.com**. **Troca na Namecheap ainda não salva**: formulário Custom DNS aberto; preenchimento do primeiro campo teve timeout e estado incerto, segundo campo não preenchido, Save não acionado. Uma recuperação de leitura também expirou. CUA parado, coordenador informado em `msg_dce79fce564a`. EasyPanel/ambiente/deploy inalterados. Não criar segunda zona ou duplicar registros ao retomar. Seções abaixo preservam a cronologia.
 
 ## Escopo autorizado
 
@@ -99,3 +99,48 @@ Após eventual devolução autorizada, retomar a **zona já existente** e confer
 Em `msg_d732a816b0b7`, o coordenador autorizou nova leitura por `getApp` e continuidade estritamente observada, uma mutação por chamada, com parada caso houvesse concorrência. A única chamada realizada selecionou novamente Chrome e retornou a aba **Namecheap Advanced DNS**, enquanto a última aba deixada por este operador era Cloudflare. A UI exibiu a barra **“Claude” começou a depurar esse navegador**, além de um grupo **⌛Claude** aberto com aba Proxmox.
 
 Não houve clique no aviso, cancelamento da depuração, acesso à aba Proxmox ou investigação do sistema. A barra, isoladamente, não comprova operação simultânea, mas a exclusividade não foi presumida. Operador parou após essa leitura, enviou `completion_summary` e comunicou o coordenador para reconciliar a reserva do Chrome. Nenhuma nova escrita ou leitura da zona Cloudflare; CNAME www continua com estado incerto conforme a etapa anterior.
+
+## Janela dedicada — conflito de foco confirmado na retomada
+
+Em `msg_11640e309f0d`, o coordenador esclareceu que o proprietário havia separado uma janela dedicada à Namecheap e autorizou selecionar essa janela, abrir Cloudflare nela e continuar uma mutação por chamada. A seleção normal por `getApp` retornou, contudo, outra janela do Chrome, alheia à tarefa. A tentativa de abrir o menu nativo **Janela** pelo índice atual, para localizar a janela dedicada, foi interrompida por **The user changed '/Applications/Google Chrome.app'**.
+
+Uma reconciliação por `getApp`, conforme autorizada, mostrou que a janela alheia havia navegado para outra tela e aberto outra aba sem ação deste operador. Nenhuma URL ou dado dessa navegação foi copiado para este documento. Houve parada sem repetir cliques, com `completion_summary` e comunicação ao coordenador em `msg_643108f603b4`.
+
+A separação em abas/janelas não isola o foco do controle nativo. Nesta tentativa não foi possível selecionar a janela dedicada; não houve reconciliação da zona nem nova escrita. Estado DNS parcial e pendências acima permanecem válidos. Retomada depende de coordenação do foco da janela dedicada, sem interação simultânea nas outras janelas do Chrome.
+
+## Parada anterior à liberação explícita
+
+Instrução `msg_89f0ee7685c1`: **aguardar nova orientação, sem qualquer retry por tempo decorrido**. O coordenador informou ter verificado uma vez o acesso isolado no CUA dele, sem caminho disponível por aba, e centralizou com o proprietário a solicitação de pausar outras automações/cliques e deixar a janela Namecheap à frente. Este operador não realizou novas chamadas CUA, leituras de tela ou uso de clipboard nesta etapa.
+
+Estado parcial mantido: zona Free existente; último A apex confirmado na UI `192.102.140.18`, Somente DNS; **conteúdo e proxy atuais de www não reconfirmados**; api pendente; cinco MX e SPF importados sem edição por este operador. NS Cloudflare ainda não lidos, NS Namecheap não alterados por este operador e nenhum domínio novo no EasyPanel. A migração não está concluída.
+
+## Retomada com outras automações pausadas — DNS concluído, NS não salvos
+
+Autorização `msg_35d8e7315c3e`, transmitindo resposta explícita do proprietário **Outras automações pausadas; pode seguir**. Selecionada a janela dedicada **Advanced DNS** pelo menu nativo Janela e aberta uma segunda aba Cloudflare nessa janela. Nenhuma operação nas abas de infraestrutura. Uma primeira entrada de endereço foi interrompida pelo guard; `getApp` reconfirmou a mesma aba vazia e permitiu a navegação observada seguinte, sem repetir escrita de DNS incerta.
+
+Reconfirmados visualmente **StayCloud** e **allber.to free**. Reaberta a zona existente, ainda na revisão dos registros importados. A apex persistia corretamente. O CNAME www ainda apontava para estacionamento; preenchido com `allber.to`, observado, feito blur e desligado o proxy. Criado apenas o registro A api ausente. Cada ação foi seguida por AX fresca. Resultado da lista: **9 registros**, sem modificação dos cinco MX ou do TXT SPF.
+
+| Tipo | Nome | Conteúdo | Proxy / TTL |
+| --- | --- | --- | --- |
+| A | allber.to | 192.102.140.18 | Somente DNS / Auto |
+| A | api | 192.102.140.18 | Somente DNS / Auto |
+| CNAME | www | allber.to | Somente DNS / Auto |
+
+Os seletores TTL de apex e www foram abertos e mostraram **Auto selecionado**; a AX representa essa opção por `1`. API foi criada com o padrão Auto, que permaneceu `1` após desligar o proxy. MX/SPF conservaram valores, prioridades e TTL importados conforme a tabela anterior. Nenhum wildcard/AAAA, plano pago ou zona duplicada.
+
+Acionado **Continue para ativação**. A Cloudflare exibiu aviso de todos os registros em DNS only, condição intencional autorizada; selecionado **Vou fazer isso mais tarde** para manter essa configuração. Na página **Atualize seus nameservers**, foram lidos os dois nomes efetivamente atribuídos:
+
+- `jerry.ns.cloudflare.com`
+- `melinda.ns.cloudflare.com`
+
+Na Namecheap Advanced DNS, DNSSEC permaneceu desmarcado. Em Domain, reconfirmados **Namecheap BasicDNS** e **You haven’t defined any Email Redirect yet**. Selecionado **Custom DNS**, que abriu **Nameserver 1**, **Nameserver 2**, **Save** e **Cancel**. Até esse momento ambos os campos estavam vazios.
+
+A chamada `setValue` do primeiro campo para `jerry.ns.cloudflare.com`, seguida da observação, retornou após 30 segundos **js execution timed out; kernel reset, rerun your request**. Não é possível afirmar se o campo foi preenchido. Uma única recuperação somente de seleção/leitura com `cua.getApp("com.google.Chrome")` retornou o mesmo timeout após 30 segundos. **Save não foi acionado e o segundo nameserver não foi preenchido por este operador.** A delegação não é considerada alterada. Não houve investigação do sistema, tentativa por tecnologia alternativa ou nova recuperação. A causa do timeout não foi estabelecida, sem atribuí-lo a concorrência.
+
+Enviado `completion_summary` e relatório ao coordenador em `msg_dce79fce564a`. CUA parado. Para retomar, primeiro reconciliar o formulário atual; usar os dois NS acima e salvar apenas após leitura dos valores reais. Depois, comunicar o salvamento para validação pública de NS/A pelo coordenador antes de adicionar HTTPS no EasyPanel. Inspeção de redirect www, domínios EasyPanel e TLS ainda pendentes. Sem alteração de APP_URL, segredos, ambiente ou deploy.
+
+## Handoff do salvamento ao proprietário
+
+Em `msg_2db2f1480281`, o coordenador confirmou o recebimento e centralizou no chat principal a execução manual pelo proprietário: preencher Custom DNS com `jerry.ns.cloudflare.com` e `melinda.ns.cloudflare.com`, depois clicar **Save**. Essa etapa foi transferida por falha do controle, sem novo pedido de autorização e sem considerar o salvamento concluído.
+
+Este operador mantém **CUA, foco e clipboard parados**, sem recuperação por tempo decorrido. O estado confirmado permanece: nove registros revisados na Cloudflare, nomes exatos acima, Save não acionado por este operador. O coordenador verificará autoritativos Cloudflare e delegação pública; após confirmação do proprietário e DNS válido, coordenará retomada apenas no EasyPanel. APP_URL, ambiente e deploy continuam fora desta etapa. Nenhuma nova chamada CUA foi feita para registrar este handoff.
