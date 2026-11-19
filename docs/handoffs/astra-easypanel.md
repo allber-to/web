@@ -264,3 +264,19 @@ A revisão final de `docs/reviews/fable-number-input.md` identificou regressão 
 Ajuste mínimo: somente o ramo `changeOverride` do blur usa `String(currentValue ?? 0)`, exatamente como o debounce. O parser do texto permanece no ramo sem override; cancelamento do timer e comparação com a última entrega continuam intactos. Os dois testes novos comprovam que blur sem digitação conserva `1.2345` sem entrega e que digitar `2` entrega `'2'` imediatamente, uma única vez mesmo após 600 ms.
 
 Validação: teste focado **9 PASS**, TSC e lint dos dois arquivos **exit 0**. Logs `/tmp/allberto-number-precision-{green,tsc,lint}.log`. O teste de clique real já aprovado não foi repetido: evento blur e navegação permanecem iguais; a mudança seleciona o valor interno já atualizado no evento de digitação anterior. Compose/env §16 e fixtures de navegador congelados não foram alterados. Fonte novamente congelada para revisão incremental; sem publicação/runtime.
+
+## Release v2 — correção numérica aprovada e defaults finais
+
+Pacote produzido de `git archive f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d`, isolado do checkout e dos ambientes locais, com o frontend.Dockerfile aprovado/target build. API compilada: `https://allberto-backend.cxfujw.easypanel.host`. Inclui a correção numérica final: entrega no blur sem perda por avanço rápido e sem arredondar valores armazenados ao apenas passar pelo campo. O coordenador informou aprovação CTO, suíte completa 354 testes/49 arquivos e hook lint/tsc/build aprovados, PR4 merged em `c6737c2e32297d0c20ff1156f5769e43c7e9dfc9`, CI verde.
+
+Release publicada pelo coordenador: `https://github.com/allber-to/web/releases/tag/web-f5cb28edb112-1`. Defaults do Dockerfile leve atualizados exatamente para:
+
+- DIST_URL: `https://github.com/allber-to/web/releases/download/web-f5cb28edb112-1/allberto-web-f5cb28edb112.tar.gz`
+- DIST_SHA256: `fcbf81bcbb622efab348a218b8524f4c5af62a7225321777af019ca6351d1ac5`
+- Tamanho: **15.274.255 bytes**; versão dentro do pacote `f5cb28edb1123fd7ac1a8db3c6091f19e8f8d19d`, builtAt `2026-11-19T16:39:54.354Z`.
+
+Evidências em `/tmp/allberto-easypanel-release-v2/`: tar.gz e `.sha256`, `release-summary.json`, `w2-check.json`, `build.log`, `bundle-package-check.log`. Build/E5/W2 PASS; zero endereços locais/assinaturas de segredo e 11 contextos localhost inertes revisados nas categorias CTO anteriores. O tar contém somente dist na raiz; checksum independente conferido. Release v1 e suas evidências permanecem em `/tmp/allberto-easypanel-release/` para rollback.
+
+Validação dos defaults v2: `docker --context desktop-linux build -t allberto-web-lightweight:f5cb28edb112 deploy/easypanel` **PASS, exit 0**, sem build args. O próprio Dockerfile baixou o asset público com TLS, validou SHA256 e extraiu. `nginx -t` **PASS, exit 0**; leitura do version.json da imagem confirmou a revisão exata. Logs `lightweight-build.log`, `lightweight-nginx-test.log` e resultado `lightweight-check.json` no diretório v2. Container descartável rodou sem rede/ports/volumes e foi removido via --rm. Nenhum build Node ou suíte foi repetido nesta etapa de defaults.
+
+Somente Dockerfile leve e este handoff mudaram nesta tarefa. Fonte congelada para PR5; nenhum deploy remoto foi realizado por Astra e não se afirma que a v2 já está servida. Aplicação web no painel ainda depende do commit do pin e redeploy pelo operador. O teste W1 anônimo separado fica sob responsabilidade do coordenador em `public-download-check.json`.
