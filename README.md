@@ -43,6 +43,8 @@ Execute novamente `up -d` para retomar. Pare o ambiente quando não estiver em u
 
 ## Documentação do projeto
 
+A publicação provisória no EasyPanel está em preparação, com frontend e API em portas separadas no IP. Artefatos: `deploy/easypanel/`. A [arquitetura](docs/architecture-easypanel.md), o [handoff operacional](docs/handoffs/astra-easypanel.md) e a [story 003](docs/stories/003-easypanel-deploy.md) registram configurações, verificações e o que ainda depende da VPS. Não reutilize credenciais ou dados do backend local nesse ambiente.
+
 - [Briefing e critérios de aceite](docs/project-brief.md)
 - [Plano, progresso e verificações](docs/stories/001-github-frontend.md)
 - [Integração com backend local](docs/stories/002-local-backend.md)

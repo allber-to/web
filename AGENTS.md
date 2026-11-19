@@ -6,7 +6,7 @@
 - Seguir fielmente `design/proposta-original.html` quando disponível; o arquivo original foi fornecido em `~/Downloads/Painel allberto · proposta.html`.
 - Preservar as funcionalidades, contratos de API, autenticação e persistência existentes ao substituir o frontend.
 - Documentar alterações, decisões, testes e pendências em `docs/`. Nunca registrar credenciais.
-- A implantação na VPS StayCloud é uma etapa posterior. Não criar recursos pagos nem alterar produção nesta etapa.
+- A validação local foi concluída. O proprietário autorizou configurar e publicar o Allberto no EasyPanel existente em `http://192.102.140.18:3000/`. Limitar alterações aos serviços e dados deste projeto; não criar recursos pagos nem modificar aplicações alheias. Registrar configuração, domínio, validações e limites sem credenciais.
 - Reaproveitar stack, componentes e padrões do fork antes de adicionar dependências.
 
 ## WHMCS: ritmo de acesso obrigatório

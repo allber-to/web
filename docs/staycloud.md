@@ -1,8 +1,10 @@
 # Preparação para a VPS StayCloud
 
-Esta etapa **não foi implantada**. O proprietário confirmou que ainda não existe backend de homologação e solicitou validação local primeiro.
+Esta etapa **ainda não foi implantada**. Após concluir a validação local, o proprietário autorizou publicar no EasyPanel existente em `http://192.102.140.18:3000/`. O acesso inicial será pelo IP, com duas portas dedicadas, apenas para homologação HTTP. O domínio futuro é `allber.to`, ainda não adquirido.
 
 A integração local foi concluída com Invoice Ninja 5.13.49: [aceite CTO](reviews/fable-local-backend.md). Ela cobre autenticação de administrador, dados persistidos, pagamento manual e PDF, com e-mails apenas em log. O histórico de e-mails do cliente/fatura depende de eventos de provedor e ainda deve ser validado em homologação com transporte real. A topologia local sem saída externa não é uma configuração de produção.
+
+A [arquitetura EasyPanel](architecture-easypanel.md) define os serviços, volumes, pré-condições P1–P6 e testes E1–E10. O [handoff Astra](handoffs/astra-easypanel.md) registra os artefatos e checks locais; a [story 003](stories/003-easypanel-deploy.md) acompanha a publicação. Não usar `local-backend/compose.yml` na VPS nem executar os smokes locais contra o servidor.
 
 ## O que este repositório entrega
 
@@ -26,7 +28,7 @@ Usar Node.js 22 ou superior e instalar versões do lockfile com `npm ci`. Copiar
 
 Executar os checks documentados no [README](../README.md), depois `npm run build`. O servidor web deve servir `dist/`, entregar os assets estáticos e fazer fallback das rotas do SPA para `index.html` quando `VITE_ROUTER=browser`. Se a API estiver na mesma origem, sua rota deve ser encaminhada ao backend antes desse fallback. Não publicar `tests/`, `design/`, relatórios, arquivos `.env` ou o checkout inteiro como raiz web.
 
-A configuração final de Nginx/Caddy/containers será escrita com os domínios e serviços reais. Não há comando de deploy com endereços presumidos neste documento.
+Os artefatos para o EasyPanel ficam em `deploy/easypanel/`: serviço Compose do backend com Build Path `/deploy/easypanel` e serviço App do frontend com Build Path `/` e Dockerfile `deploy/easypanel/frontend.Dockerfile`. Portas e valores de ambiente dependem do inventário do painel; não há porta presumida como disponível. Builds de teste usam uma origem de documentação, que não deve ser copiada para a VPS.
 
 ## Validação de homologação e rollback
 

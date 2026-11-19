@@ -1,0 +1,83 @@
+services:
+  app:
+    image: invoiceninja/invoiceninja-debian@sha256:05efd0913eb0d72d0246ec96d6cb6adf5ac3d3e59b9b91514b9f64b892f21c92
+    restart: unless-stopped
+    environment:
+      APP_KEY: ${APP_KEY:?Set a new application key}
+      APP_URL: ${APP_URL:?Set the public API origin}
+      DB_PASSWORD: ${DB_PASSWORD:?Set a new database password}
+      IN_USER_EMAIL: ${IN_USER_EMAIL:?Set the owner-approved administrator email}
+      IN_PASSWORD: ${IN_PASSWORD:?Set a new administrator password}
+      NINJA_ENVIRONMENT: selfhost
+      APP_ENV: production
+      APP_DEBUG: "false"
+      REQUIRE_HTTPS: "false"
+      IS_DOCKER: "true"
+      PDF_GENERATOR: snappdf
+      PHANTOMJS_PDF_GENERATION: "false"
+      FILESYSTEM_DISK: debian_docker
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: redis
+      REDIS_HOST: redis
+      DB_HOST: mysql
+      DB_CONNECTION: mysql
+      DB_DATABASE: ninja
+      DB_USERNAME: ninja
+      MAIL_MAILER: log
+      MAIL_HOST: ""
+      SCOUT_DRIVER: "null"
+    volumes:
+      - app_public:/var/www/html/public
+      - app_storage:/var/www/html/storage
+    networks: [backend]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  nginx:
+    build: ./nginx
+    restart: unless-stopped
+    ports: ["${API_PORT:?Set an available API host port}:80"]
+    networks: [backend, edge]
+    volumes:
+      - app_public:/var/www/html/public:ro
+      - app_storage:/var/www/html/storage:ro
+    depends_on:
+      app:
+        condition: service_healthy
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    networks: [backend]
+    environment:
+      MYSQL_DATABASE: ninja
+      MYSQL_USER: ninja
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set a new database password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set a new database root password}
+    volumes: [mysql_data:/var/lib/mysql]
+    healthcheck:
+      test: [CMD, mysqladmin, ping, -h, localhost]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    networks: [backend]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+networks:
+  backend:
+    internal: true
+  edge: {}
+volumes:
+  app_public: {}
+  app_storage: {}
+  mysql_data: {}
+  redis_data: {}
