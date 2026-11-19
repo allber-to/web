@@ -264,7 +264,8 @@ export function UpcomingCharges() {
           >
             {days.map((day) => {
               const count = items.filter(
-                (item) => item.next_send_date === day.date
+                (item) =>
+                  dayjs(item.next_send_date).format('YYYY-MM-DD') === day.date
               ).length;
 
               return (

@@ -2,6 +2,8 @@
 
 Esta etapa **não foi implantada**. O proprietário confirmou que ainda não existe backend de homologação e solicitou validação local primeiro.
 
+A integração local foi concluída com Invoice Ninja 5.13.49: [aceite CTO](reviews/fable-local-backend.md). Ela cobre autenticação de administrador, dados persistidos, pagamento manual e PDF, com e-mails apenas em log. O histórico de e-mails do cliente/fatura depende de eventos de provedor e ainda deve ser validado em homologação com transporte real. A topologia local sem saída externa não é uma configuração de produção.
+
 ## O que este repositório entrega
 
 Este é o frontend React do Invoice Ninja, construído com Vite. `npm run build` executa TypeScript e gera arquivos estáticos em `dist/` (bundles em `dist/react/`). Ele não contém o backend PHP, banco, filas, agendador ou armazenamento de documentos do Invoice Ninja.

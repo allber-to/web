@@ -39,3 +39,13 @@ Essa validação comprova comportamento local dos componentes e rotas montadas. 
 O editor upstream recalcula e modifica seu clone de fatura. A visão geral somente de leitura recebe `persistedInvoice`, a resposta original da query, em vez desse clone. Não recomputar `paid_to_date`, `balance` ou `line_total` a partir de outros valores; mudanças não salvas não podem aparecer como persistidas.
 
 A regressão descoberta por Fable é coberta por um teste que executa o calculador real sobre o clone e verifica que a tela conserva os valores do snapshot do servidor. Detalhes nos [handoffs de entidades](handoffs/astra-entities.md) e [revisão Fable](reviews/fable-entities.md).
+
+## ADR-006 — validar o backend do fork em ambiente local isolado
+
+**Data:** 19/11/2026. **Estado:** implementada e aceita por Fable 5.2; [revisão final](reviews/fable-local-backend.md).
+
+O proprietário autorizou a integração local antes da VPS. O fork `allber-to/invoiceninja` não difere da release 5.13.49; usar a imagem oficial fixada por digest evita manter um build próprio sem customização. Qualquer futura mudança no fork exige reavaliar essa equivalência.
+
+O projeto Compose `allberto-ninja-local` separa volumes e rede, publica apenas a API em loopback e mantém app, banco e Redis sem saída externa. O frontend real usa a API em uma porta distinta da prévia com fixtures. Segredos ficam em arquivo local ignorado e não são regenerados ao reiniciar.
+
+O smoke próprio verifica contratos reais, valores financeiros persistidos, PDF e e-mail em log, sem chamar resets da suíte upstream. A [arquitetura detalhada](architecture-local-backend.md) registra digests, critérios A1–A10 e limites; o [registro da fase](stories/002-local-backend.md) acompanha a execução. Esse ambiente não constitui uma configuração de produção.

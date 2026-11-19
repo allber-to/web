@@ -10,7 +10,7 @@ Data: 19/11/2026. Branch de trabalho: `luizstay/luiz-feat-link-github`. Base fun
 - Detalhe de cliente e visão geral de fatura, com os valores persistidos separados do rascunho editável.
 - Traduções pt_BR/en, estados de carregamento/erro/vazio e máscara de valores no Painel, incluindo estornos e notas.
 
-Os fluxos existentes, guards e handlers foram reutilizados. Preservar seu código não comprova o funcionamento completo contra um servidor ainda inexistente.
+Os fluxos existentes, guards e handlers foram reutilizados. A fase inicial abaixo usou fixtures; os resultados da integração com backend real são registrados separadamente ao fim deste documento.
 
 ## Checks do coordenador
 
@@ -46,10 +46,24 @@ A inspeção da captura mobile revelou outro problema existente: `Tabs` usava o 
 
 ## Limites de aceite
 
-Não há backend de homologação. As fixtures locais não validam login, ACL do servidor, persistência, PDF/exportação, envio de mensagens, cobrança, estorno ou integrações reais. A suíte E2E upstream que reseta contas não foi executada. O [roteiro StayCloud](staycloud.md) mantém essas verificações como condição para implantação.
+As fixtures locais não validam login, ACL do servidor, persistência, PDF/exportação, envio de mensagens, cobrança, estorno ou integrações reais. A fase posterior com backend local cobre apenas os resultados explicitamente registrados abaixo. A suíte E2E upstream que reseta contas não foi executada. O [roteiro StayCloud](staycloud.md) mantém os requisitos restantes para implantação.
 
 Alguns dados exibidos pelo protótipo não possuem contrato confirmado na base: recusas/validade de cartão, sparkline de MRR, recebido versus previsto, participação no ranking e contadores do menu. Eles não foram preenchidos com dados inventados. O seletor de períodos e filtros reais do Ninja permanece; a barra de ferramentas pode ocupar mais espaço que a proposta.
 
 A máscara é visual e limitada ao Painel; outras telas não exibem o controle. Datas relativas usam o relógio do navegador. KPIs mantêm duas casas decimais, inclusive em moedas sem centavos. Não houve auditoria WCAG completa, leitor de tela ou validação Safari/Firefox. O recorte de Combobox pela folha foi investigado em caso local e não foi reproduzido; isso não cobre todos os formulários.
 
 Não houve acesso ao WHMCS, implantação, contratação de VPS ou alteração em produção.
+
+## Integração com backend local — fase 002
+
+O backend 5.13.49 foi iniciado em Docker local com imagem oficial fixada por digest, equivalente ao fork `allber-to/invoiceninja`. O frontend real usa `127.0.0.1:3100`, separado da prévia com fixtures. A [arquitetura aprovada pelo CTO](architecture-local-backend.md) define os critérios A1–A10; a [story 002](stories/002-local-backend.md) registra execução e ressalvas.
+
+A API real confirmou login/precheck/refresh, criação e leitura de clientes, faturas, recorrente e pagamento manual. A massa conhecida produziu MRR de R$ 75,00, a receber de R$ 300,00, vencido de R$ 200,00 e recebido de R$ 23,45. A fatura de R$ 123,45 ficou com saldo de R$ 100,00 após pagamento de R$ 23,45. Empresa, IDs e saldos foram preservados após `stop`/`up -d`; os recursos Docker alheios permaneceram iguais.
+
+A execução revelou que a API retorna `next_send_date` com horário. O contador por dia em próximas cobranças comparava a string completa e exibia zero; agora normaliza a data com o `dayjs` já usado pela lista. A regressão renderiza o componente real com data simples e timestamp. Após essa correção, o coordenador executou **345 testes em 48 arquivos**, lint global de 1.786 arquivos e build TypeScript/Vite: todos passaram. Logs locais: `/tmp/allberto-backend-unit.log`, `/tmp/allberto-backend-lint.log`, `/tmp/allberto-backend-build.log`.
+
+PDF real gerado na rede interna, incluindo valor, cliente e acentuação conferidos. O e-mail foi gravado em log local e a fatura recebeu data de envio; o endpoint de histórico de e-mails retornou vazio. O CTO aceitou essa ressalva: o histórico depende de eventos de provedor, ausentes no transporte log.
+
+O navegador terminou naturalmente com exit 0: **150 respostas da API, zero erros JavaScript, falhas de requisição ou HTTP >=400**. Conferiu login, quatro listas, detalhes, total/pago/saldo da fatura, KPIs exatos, calendário, edição de cliente pela UI confirmada por GET e recarga autenticada. Empresa e clientes usam Brasil/BRL/pt_BR; o país original do bootstrap causava separadores americanos, resolvido por configuração. [Handoff da execução](handoffs/astra-backend-local.md), [captura selecionada](evidence/backend-local/README.md) e [aceite final Fable](reviews/fable-local-backend.md), sem bloqueios.
+
+Esta fase usa um administrador e pagamento manual. Não cobre permissões de usuários restritos, gateways, cobrança automática, entrega externa de e-mail, exportações, produção ou VPS. Os dados têm datas conhecidas: após a próxima emissão ou mudança de mês, o smoke pode detectar valores diferentes e falhar; ele não apaga ou reseta a conta para esconder isso.
